@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  admin_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: admin_app_dev
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+      - admin_vendor_dev:/var/www/vendor
+    env_file:
+      - .env.dev
+    environment:
+      APP_ENV: dev
+      DB_HOST: db
+      DB_CONNECTION: pgsql
+      DB_PORT: 5432
+      DB_DATABASE: goouty
+      DB_USERNAME: admin
+      DB_PASSWORD: Admin123
+
+  admin_web:
+    image: nginx:alpine
+    container_name: admin_web_dev
+    ports:
+      - "8001:80"
+    volumes:
+      - .:/var/www
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - admin_app
+
+volumes:
+  admin_vendor_dev:
+
+networks:
+  default:
+    external: true
+    name: goouty-network
