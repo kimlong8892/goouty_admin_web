@@ -125,6 +125,11 @@ jobs:
           # Convert to comma-separated string for gcloud
           ENV_FLAGS=$(paste -sd "," .env.escaped)
           
+          echo "--- DEBUG: ENV_FLAGS value ---"
+          echo "Length: ${#ENV_FLAGS}"
+          echo "Content preview (first 200 chars): ${ENV_FLAGS:0:200}"
+          echo "--- END DEBUG ---"
+          
           if [ -z "$ENV_FLAGS" ]; then
             echo "::warning::ENV_FLAGS is empty after processing. Skipping migration."
             exit 0
