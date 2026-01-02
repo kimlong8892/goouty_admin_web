@@ -119,15 +119,26 @@ jobs:
             exit 0
           fi
 
-          # Convert .env format to YAML format for gcloud
-          echo "Creating env vars YAML file..."
+          # Convert .env format to JSON format for gcloud (more reliable than YAML)
+          echo "Creating env vars JSON file..."
+          echo "{" > env-vars.json
+          first=true
           while IFS='=' read -r key value; do
             [ -z "$key" ] && continue
-            echo "$key: $value" >> env-vars.yaml
+            if [ "$first" = true ]; then
+              first=false
+            else
+              echo "," >> env-vars.json
+            fi
+            # Escape backslashes and quotes for JSON
+            value_json=$(echo "$value" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g')
+            echo -n "  \"$key\": \"$value_json\"" >> env-vars.json
           done < .env.temp
+          echo "" >> env-vars.json
+          echo "}" >> env-vars.json
           
-          echo "--- DEBUG: env-vars.yaml content (first 20 lines) ---"
-          head -20 env-vars.yaml
+          echo "--- DEBUG: env-vars.json content ---"
+          cat env-vars.json
           echo "--- END DEBUG ---"
 
           JOB_NAME="migrate-${{ env.SERVICE_NAME }}"
@@ -139,7 +150,7 @@ jobs:
              # Update existing job
              gcloud run jobs update $JOB_NAME \
               --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
-              --env-vars-file env-vars.yaml \
+              --env-vars-file env-vars.json \
               --command php \
               --args artisan,migrate,--force \
               --region ${{ env.REGION }} || echo "::warning::Failed to update migration job"
@@ -147,7 +158,7 @@ jobs:
              # Create new job
              gcloud run jobs create $JOB_NAME \
               --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
-              --env-vars-file env-vars.yaml \
+              --env-vars-file env-vars.json \
               --command php \
               --args artisan,migrate,--force \
               --region ${{ env.REGION }} || echo "::warning::Failed to create migration job"
