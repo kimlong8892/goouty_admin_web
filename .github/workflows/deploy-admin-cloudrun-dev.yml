@@ -156,24 +156,23 @@ jobs:
           
           echo "Deploying/Updating Cloud Run Job: $JOB_NAME"
           
-          # Build base command
-          BASE_CMD="--image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
-            --command php \
-            --args artisan,migrate,--force \
-            --region ${{ env.REGION }}"
-          
-          # Add env vars only if not empty
-          if [ -n "$ENV_FLAGS" ]; then
-            ENV_CMD="--set-env-vars \"$ENV_FLAGS\""
-          else
-            ENV_CMD=""
-          fi
-          
-          # Check if job exists
+          # Check if job exists and create/update accordingly
           if gcloud run jobs describe $JOB_NAME --region ${{ env.REGION }} > /dev/null 2>&1; then
-             eval "gcloud run jobs update $JOB_NAME $BASE_CMD $ENV_CMD" || echo "::warning::Failed to update migration job"
+             # Update existing job
+             gcloud run jobs update $JOB_NAME \
+              --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+              --set-env-vars "$ENV_FLAGS" \
+              --command php \
+              --args artisan,migrate,--force \
+              --region ${{ env.REGION }} || echo "::warning::Failed to update migration job"
           else
-             eval "gcloud run jobs create $JOB_NAME $BASE_CMD $ENV_CMD" || echo "::warning::Failed to create migration job"
+             # Create new job
+             gcloud run jobs create $JOB_NAME \
+              --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+              --set-env-vars "$ENV_FLAGS" \
+              --command php \
+              --args artisan,migrate,--force \
+              --region ${{ env.REGION }} || echo "::warning::Failed to create migration job"
           fi
 
           echo "Executing migration..."
