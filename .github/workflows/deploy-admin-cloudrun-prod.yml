@@ -119,21 +119,16 @@ jobs:
             exit 0
           fi
 
-          # Escape commas in values to prevent argument splitting issues in gcloud
-          sed 's/,/\\,/g' .env.temp > .env.escaped
-
-          # Convert to comma-separated string for gcloud
-          ENV_FLAGS=$(paste -sd "," .env.escaped)
+          # Convert .env format to YAML format for gcloud
+          echo "Creating env vars YAML file..."
+          awk -F= '{
+            gsub(/'\''/, "'\''\\'\'\'''\''", $2);  # Escape single quotes in values
+            printf "%s: '\''%s'\''\n", $1, $2
+          }' .env.temp > env-vars.yaml
           
-          echo "--- DEBUG: ENV_FLAGS value ---"
-          echo "Length: ${#ENV_FLAGS}"
-          echo "Content preview (first 200 chars): ${ENV_FLAGS:0:200}"
+          echo "--- DEBUG: env-vars.yaml content (first 20 lines) ---"
+          head -20 env-vars.yaml
           echo "--- END DEBUG ---"
-          
-          if [ -z "$ENV_FLAGS" ]; then
-            echo "::warning::ENV_FLAGS is empty after processing. Skipping migration."
-            exit 0
-          fi
 
           JOB_NAME="migrate-${{ env.SERVICE_NAME }}"
           
@@ -144,7 +139,7 @@ jobs:
              # Update existing job
              gcloud run jobs update $JOB_NAME \
               --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
-              --set-env-vars "$ENV_FLAGS" \
+              --env-vars-file env-vars.yaml \
               --command php \
               --args artisan,migrate,--force \
               --region ${{ env.REGION }} || echo "::warning::Failed to update migration job"
@@ -152,7 +147,7 @@ jobs:
              # Create new job
              gcloud run jobs create $JOB_NAME \
               --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
-              --set-env-vars "$ENV_FLAGS" \
+              --env-vars-file env-vars.yaml \
               --command php \
               --args artisan,migrate,--force \
               --region ${{ env.REGION }} || echo "::warning::Failed to create migration job"
