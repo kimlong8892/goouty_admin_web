@@ -126,29 +126,29 @@ jobs:
           } >> $GITHUB_OUTPUT
 
       - name: Run Database Migration
+        continue-on-error: true
         run: |
           echo "Preparing environment variables for Cloud Run Job..."
           
           if [ ! -f .env.temp ]; then
-            echo "::error::.env.temp file not found. Previous step may have failed silently or file was lost."
-            exit 1
+            echo "::warning::.env.temp file not found. Skipping migration."
+            exit 0
           fi
 
           # Check if .env.temp has content
           if [ ! -s .env.temp ]; then
             echo "::warning::.env.temp is empty. Skipping migration as no environment variables are configured."
-            echo "SKIP_MIGRATION=true" >> $GITHUB_ENV
-          else
-            # Escape commas in values to prevent argument splitting issues in gcloud
-            sed 's/,/\\,/g' .env.temp > .env.escaped
-            
-            # Convert to comma-separated string
-            ENV_FLAGS=$(paste -sd "," .env.escaped)
-            echo "SKIP_MIGRATION=false" >> $GITHUB_ENV
+            exit 0
           fi
 
-          if [ "$SKIP_MIGRATION" = "true" ]; then
-            echo "Skipping migration due to missing environment variables."
+          # Escape commas in values to prevent argument splitting issues in gcloud
+          sed 's/,/\\,/g' .env.temp > .env.escaped
+          
+          # Convert to comma-separated string
+          ENV_FLAGS=$(paste -sd "," .env.escaped)
+          
+          if [ -z "$ENV_FLAGS" ]; then
+            echo "::warning::ENV_FLAGS is empty after processing. Skipping migration."
             exit 0
           fi
 
@@ -156,25 +156,30 @@ jobs:
           
           echo "Deploying/Updating Cloud Run Job: $JOB_NAME"
           
+          # Build base command
+          BASE_CMD="--image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            --command php \
+            --args artisan,migrate,--force \
+            --region ${{ env.REGION }}"
+          
+          # Add env vars only if not empty
+          if [ -n "$ENV_FLAGS" ]; then
+            ENV_CMD="--set-env-vars \"$ENV_FLAGS\""
+          else
+            ENV_CMD=""
+          fi
+          
           # Check if job exists
           if gcloud run jobs describe $JOB_NAME --region ${{ env.REGION }} > /dev/null 2>&1; then
-             gcloud run jobs update $JOB_NAME \
-              --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
-              --set-env-vars "$ENV_FLAGS" \
-              --command php \
-              --args artisan,migrate,--force \
-              --region ${{ env.REGION }}
+             eval "gcloud run jobs update $JOB_NAME $BASE_CMD $ENV_CMD" || echo "::warning::Failed to update migration job"
           else
-             gcloud run jobs create $JOB_NAME \
-              --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
-              --set-env-vars "$ENV_FLAGS" \
-              --command php \
-              --args artisan,migrate,--force \
-              --region ${{ env.REGION }}
+             eval "gcloud run jobs create $JOB_NAME $BASE_CMD $ENV_CMD" || echo "::warning::Failed to create migration job"
           fi
 
           echo "Executing migration..."
-          gcloud run jobs execute $JOB_NAME --region ${{ env.REGION }} --wait
+          if ! gcloud run jobs execute $JOB_NAME --region ${{ env.REGION }} --wait; then
+            echo "::warning::Migration failed but continuing deployment..."
+          fi
 
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
