@@ -91,7 +91,7 @@ jobs:
             
             # Validation: Ensure critical secrets (APP_KEY) were resolved
             if ! grep -q "APP_KEY=" .env.temp; then
-              echo "::error::APP_KEY was NOT found in resolved variables! You MUST add 'ADMIN_APP_KEY' (mapped to APP_KEY) to your GitHub Repository Secrets."
+              echo "::error::APP_KEY was NOT found in resolved variables! You MUST add 'APP_KEY' to your GitHub Environment Secrets."
               exit 1
             fi
           else
