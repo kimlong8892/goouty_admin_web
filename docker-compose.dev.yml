@@ -24,6 +24,10 @@ services:
   admin_web:
     image: nginx:alpine
     container_name: admin_web_dev
+    environment:
+      - BASIC_AUTH_USER=goouty
+      - BASIC_AUTH_PASS=minh_long_hoang
+    command: /bin/sh -c "echo $BASIC_AUTH_USER:$BASIC_AUTH_PASS > /etc/nginx/.htpasswd && nginx -g 'daemon off;'"
     ports:
       - "8001:80"
     volumes:
