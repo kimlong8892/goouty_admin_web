@@ -143,10 +143,10 @@ jobs:
 
           # Convert .env format to YAML format for gcloud
           echo "Creating env vars YAML file..."
-          awk -F= '{
-            gsub(/'\''/, "'\''\\'\'\'''\''", $2);  # Escape single quotes in values
-            printf "%s: '\''%s'\''\n", $1, $2
-          }' .env.temp > env-vars.yaml
+          while IFS='=' read -r key value; do
+            [ -z "$key" ] && continue
+            echo "$key: $value" >> env-vars.yaml
+          done < .env.temp
           
           echo "--- DEBUG: env-vars.yaml content (first 20 lines) ---"
           head -20 env-vars.yaml
