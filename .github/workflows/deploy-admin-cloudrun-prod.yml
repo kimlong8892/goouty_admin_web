@@ -90,7 +90,12 @@ jobs:
              exit 1
           fi
 
+          # Fix for Cloud Run: Ensure ASSET_URL matches APP_URL
           echo "APP_ENV=production" >> .env.temp
+          APP_URL_VAL=$(grep "^APP_URL=" .env.temp | cut -d= -f2- || echo "")
+          if [ -n "$APP_URL_VAL" ]; then
+            echo "ASSET_URL=$APP_URL_VAL" >> .env.temp
+          fi
 
           # 4. Save to GITHUB_OUTPUT for next step
           {
@@ -102,8 +107,22 @@ jobs:
       - name: Run Database Migration
         run: |
           echo "Preparing environment variables for Cloud Run Job..."
-          # Convert .env.temp to comma-separated string for gcloud
-          ENV_FLAGS=$(paste -sd "," .env.temp)
+
+          if [ ! -f .env.temp ]; then
+            echo "::error::.env.temp file not found. Previous step may have failed silently or file was lost."
+            exit 1
+          fi
+
+          # Escape commas in values to prevent argument splitting issues in gcloud
+          sed 's/,/\\,/g' .env.temp > .env.escaped
+
+          # Convert to comma-separated string for gcloud
+          ENV_FLAGS=$(paste -sd "," .env.escaped)
+          
+          if [ -z "$ENV_FLAGS" ]; then
+             echo "::error::Generated ENV_FLAGS is empty. Cannot deploy without environment variables."
+             exit 1
+          fi
 
           JOB_NAME="migrate-${{ env.SERVICE_NAME }}"
           
