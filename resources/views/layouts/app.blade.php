@@ -129,6 +129,16 @@
                 <div data-i18n="Analytics">Bảng điều khiển</div>
               </a>
             </li>
+
+            <li class="menu-header small text-uppercase">
+              <span class="menu-header-text">Quản lý</span>
+            </li>
+            <li class="menu-item">
+              <a href="{{ route('trip-templates.index') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-map-alt"></i>
+                <div data-i18n="Trip Templates">Mẫu chuyến đi</div>
+              </a>
+            </li>
           </ul>
         </aside>
         <!-- / Menu -->
