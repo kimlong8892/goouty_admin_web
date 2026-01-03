@@ -123,7 +123,7 @@
 
           <ul class="menu-inner py-1">
             <!-- Dashboard -->
-            <li class="menu-item active">
+            <li class="menu-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
               <a href="{{ route('dashboard') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-home-circle"></i>
                 <div data-i18n="Analytics">Bảng điều khiển</div>
@@ -133,7 +133,7 @@
             <li class="menu-header small text-uppercase">
               <span class="menu-header-text">Quản lý</span>
             </li>
-            <li class="menu-item">
+            <li class="menu-item {{ request()->routeIs('trip-templates.*') ? 'active' : '' }}">
               <a href="{{ route('trip-templates.index') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-map-alt"></i>
                 <div data-i18n="Trip Templates">Mẫu chuyến đi</div>
