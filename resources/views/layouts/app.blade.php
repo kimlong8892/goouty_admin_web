@@ -159,6 +159,12 @@
                 <div data-i18n="Trip Templates">Mẫu chuyến đi</div>
               </a>
             </li>
+            <li class="menu-item {{ request()->routeIs('templates.*') ? 'active' : '' }}">
+              <a href="{{ route('templates.index') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-envelope"></i>
+                <div data-i18n="Templates">Template Email</div>
+              </a>
+            </li>
 
             <li class="menu-header small text-uppercase">
               <span class="menu-header-text">Hệ thống</span>
