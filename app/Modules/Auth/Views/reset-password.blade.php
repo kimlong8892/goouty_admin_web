@@ -122,7 +122,9 @@
                   </div>
                 </div>
 
-                <button class="btn btn-primary d-grid w-100 mb-3">Đặt lại mật khẩu</button>
+                <button class="btn btn-primary d-grid w-100 mb-3">
+                    <i class="bx bx-reset me-1"></i> Đặt lại mật khẩu
+                </button>
                 <div class="text-center">
                   <a href="{{ route('login') }}">
                     <i class="bx bx-chevron-left scaleX-n1-rtl bx-sm"></i>

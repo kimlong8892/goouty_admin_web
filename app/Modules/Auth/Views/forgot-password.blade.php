@@ -90,7 +90,9 @@
                     </div>
                   @enderror
                 </div>
-                <button class="btn btn-primary d-grid w-100">Gửi link đặt lại mật khẩu</button>
+                <button class="btn btn-primary d-grid w-100">
+                    <i class="bx bx-paper-plane me-1"></i> Gửi link đặt lại mật khẩu
+                </button>
               </form>
               <div class="text-center">
                 <a href="{{ route('login') }}" class="d-flex align-items-center justify-content-center">

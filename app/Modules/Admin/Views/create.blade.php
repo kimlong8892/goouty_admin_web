@@ -28,8 +28,14 @@
                         <label class="form-label" for="password_confirmation">Xác nhận mật khẩu</label>
                         <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" />
                     </div>
-                    <button type="submit" class="btn btn-primary">Lưu</button>
-                    <a href="{{ route('admins.index') }}" class="btn btn-secondary">Hủy</a>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="bx bx-save me-1"></i> Lưu
+                        </button>
+                        <a href="{{ route('admins.index') }}" class="btn btn-outline-secondary">
+                            <i class="bx bx-x me-1"></i> Hủy
+                        </a>
+                    </div>
                 </form>
             </div>
         </div>

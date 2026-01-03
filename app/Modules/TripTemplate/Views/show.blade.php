@@ -10,8 +10,12 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Thông tin Mẫu chuyến đi</h5>
                 <div>
-                    <a href="{{ route('trip-templates.edit', $template->id) }}" class="btn btn-primary btn-sm">Chỉnh sửa</a>
-                    <a href="{{ route('trip-templates.index') }}" class="btn btn-secondary btn-sm">Quay lại</a>
+                    <a href="{{ route('trip-templates.edit', $template->id) }}" class="btn btn-primary btn-sm">
+                        <i class="bx bx-edit me-1"></i> Chỉnh sửa
+                    </a>
+                    <a href="{{ route('trip-templates.index') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bx bx-arrow-back me-1"></i> Quay lại
+                    </a>
                 </div>
             </div>
             <div class="card-body">
@@ -184,12 +188,16 @@
                                                         </div>
                                                         <div class="form-check form-switch">
                                                             <input type="checkbox" name="important" class="form-check-input" id="important{{ $activity->id }}" {{ $activity->important ? 'checked' : '' }}>
-                                                            <label class="form-check-label" for="important{{ $activity->id }}">Quan trọng</label>
+                                                            <label class="form-check-label" for="important{{ $activity->id }}"><i class="bx bx-star me-1"></i> Quan trọng</label>
                                                         </div>
                                                     </div>
                                                     <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                                                        <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                                                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                                            <i class="bx bx-x me-1"></i> Đóng
+                                                        </button>
+                                                        <button type="submit" class="btn btn-primary">
+                                                            <i class="bx bx-check me-1"></i> Lưu thay đổi
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </form>
@@ -234,8 +242,12 @@
                                 </div>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                                <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                    <i class="bx bx-x me-1"></i> Đóng
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bx bx-check me-1"></i> Lưu thay đổi
+                                </button>
                             </div>
                         </div>
                     </form>
@@ -283,12 +295,16 @@
                                 </div>
                                 <div class="form-check form-switch">
                                     <input type="checkbox" name="important" class="form-check-input" id="importantNew{{ $day->id }}">
-                                    <label class="form-check-label" for="importantNew{{ $day->id }}">Quan trọng</label>
+                                    <label class="form-check-label" for="importantNew{{ $day->id }}"><i class="bx bx-star me-1"></i> Quan trọng</label>
                                 </div>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                                <button type="submit" class="btn btn-primary">Thêm</button>
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                    <i class="bx bx-x me-1"></i> Đóng
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bx bx-plus me-1"></i> Thêm
+                                </button>
                             </div>
                         </div>
                     </form>
@@ -329,8 +345,12 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                    <button type="submit" class="btn btn-primary">Thêm</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="bx bx-x me-1"></i> Đóng
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bx bx-plus me-1"></i> Thêm
+                    </button>
                 </div>
             </div>
         </form>

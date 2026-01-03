@@ -42,8 +42,14 @@
                             <label class="form-check-label" for="isPublic">Công khai</label>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Cập nhật</button>
-                    <a href="{{ route('trip-templates.index') }}" class="btn btn-secondary">Hủy</a>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="bx bx-check me-1"></i> Cập nhật
+                        </button>
+                        <a href="{{ route('trip-templates.index') }}" class="btn btn-outline-secondary">
+                            <i class="bx bx-x me-1"></i> Hủy
+                        </a>
+                    </div>
                 </form>
             </div>
         </div>

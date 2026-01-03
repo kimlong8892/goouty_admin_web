@@ -176,7 +176,9 @@
                   </div>
                 </div>
                 <div class="mb-3">
-                  <button class="btn btn-primary d-grid w-100" type="submit">Đăng nhập</button>
+                  <button class="btn btn-primary d-grid w-100" type="submit">
+                      <i class="bx bx-log-in me-1"></i> Đăng nhập
+                  </button>
                 </div>
               </form>
             </div>
