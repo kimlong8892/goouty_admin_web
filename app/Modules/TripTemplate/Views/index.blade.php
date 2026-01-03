@@ -23,7 +23,7 @@
                 @foreach($templates as $template)
                 <tr>
                     <td><strong>{{ $template->title }}</strong></td>
-                    <td>{{ $template->provinceId ?? 'N/A' }}</td>
+                    <td>{{ $template->province?->name ?? 'N/A' }}</td>
                     <td>
                         @if($template->isPublic)
                             <span class="badge bg-label-success me-1">Có</span>
@@ -31,24 +31,22 @@
                             <span class="badge bg-label-secondary me-1">Không</span>
                         @endif
                     </td>
-                    <td>{{ $template->createdAt }}</td>
+                    <td>{{ $template->createdAt?->format('d/m/Y H:i') ?? 'N/A' }}</td>
                     <td>
-                        <div class="dropdown">
-                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                                <i class="bx bx-dots-vertical-rounded"></i>
-                            </button>
-                            <div class="dropdown-menu">
-                                <a class="dropdown-item" href="{{ route('trip-templates.edit', $template->id) }}">
-                                    <i class="bx bx-edit-alt me-1"></i> Sửa
-                                </a>
-                                <form action="{{ route('trip-templates.destroy', $template->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="dropdown-item text-danger">
-                                        <i class="bx bx-trash me-1"></i> Xóa
-                                    </button>
-                                </form>
-                            </div>
+                        <div class="d-flex align-items-center">
+                            <a class="btn btn-sm btn-icon btn-label-info me-1" href="{{ route('trip-templates.show', $template->id) }}" title="Xem chi tiết">
+                                <i class="bx bx-show"></i>
+                            </a>
+                            <a class="btn btn-sm btn-icon btn-label-primary me-1" href="{{ route('trip-templates.edit', $template->id) }}" title="Sửa">
+                                <i class="bx bx-edit-alt"></i>
+                            </a>
+                            <form action="{{ route('trip-templates.destroy', $template->id) }}" method="POST" class="ajax-delete" style="display: inline;">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-icon btn-label-danger" title="Xóa">
+                                    <i class="bx bx-trash"></i>
+                                </button>
+                            </form>
                         </div>
                     </td>
                 </tr>

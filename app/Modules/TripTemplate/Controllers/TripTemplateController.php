@@ -6,14 +6,22 @@ use App\Http\Controllers\Controller;
 use App\Modules\TripTemplate\Models\TripTemplate;
 use App\Modules\TripTemplate\Models\PublicUser;
 use App\Modules\TripTemplate\Models\Province;
+use App\Modules\TripTemplate\Requests\StoreTripTemplateRequest;
+use App\Modules\TripTemplate\Requests\UpdateTripTemplateRequest;
 use Illuminate\Http\Request;
 
 class TripTemplateController extends Controller
 {
     public function index()
     {
-        $templates = TripTemplate::orderBy('updatedAt', 'desc')->paginate(10);
+        $templates = TripTemplate::with('province')->orderBy('updatedAt', 'desc')->paginate(10);
         return view('triptemplate::index', compact('templates'));
+    }
+
+    public function show($id)
+    {
+        $template = TripTemplate::with(['days.activities', 'province', 'user'])->findOrFail($id);
+        return view('triptemplate::show', compact('template'));
     }
 
     public function create()
@@ -22,12 +30,8 @@ class TripTemplateController extends Controller
         return view('triptemplate::create', compact('provinces'));
     }
 
-    public function store(Request $request)
+    public function store(StoreTripTemplateRequest $request)
     {
-        $request->validate([
-            'title' => 'required',
-            'provinceId' => 'nullable|exists:public.Province,id',
-        ]);
 
         $user = PublicUser::first();
         if (!$user) {
@@ -43,6 +47,14 @@ class TripTemplateController extends Controller
             'userId' => $user->id,
         ]);
 
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tạo mẫu chuyến đi thành công.',
+                'redirect' => route('trip-templates.index')
+            ]);
+        }
+
         return redirect()->route('trip-templates.index')->with('success', 'Tạo mẫu chuyến đi thành công.');
     }
 
@@ -53,13 +65,8 @@ class TripTemplateController extends Controller
         return view('triptemplate::edit', compact('template', 'provinces'));
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateTripTemplateRequest $request, $id)
     {
-        $request->validate([
-            'title' => 'required',
-            'provinceId' => 'nullable|exists:public.Province,id',
-        ]);
-
         $template = TripTemplate::findOrFail($id);
         
         $currentUserId = $template->userId;
@@ -79,6 +86,14 @@ class TripTemplateController extends Controller
             'userId' => $currentUserId 
         ]);
 
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Cập nhật mẫu chuyến đi thành công.',
+                'redirect' => route('trip-templates.index')
+            ]);
+        }
+
         return redirect()->route('trip-templates.index')->with('success', 'Cập nhật mẫu chuyến đi thành công.');
     }
     
@@ -86,6 +101,13 @@ class TripTemplateController extends Controller
     {
         $template = TripTemplate::findOrFail($id);
         $template->delete();
+
+        if (request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Xóa mẫu chuyến đi thành công.'
+            ]);
+        }
 
         return redirect()->route('trip-templates.index')->with('success', 'Xóa mẫu chuyến đi thành công.');
     }

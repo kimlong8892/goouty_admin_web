@@ -10,11 +10,11 @@
                 <h5 class="mb-0">Thêm mới Mẫu chuyến đi</h5>
             </div>
             <div class="card-body">
-                <form action="{{ route('trip-templates.store') }}" method="POST">
+                <form action="{{ route('trip-templates.store') }}" method="POST" class="ajax-form">
                     @csrf
                     <div class="mb-3">
                         <label class="form-label" for="title">Tiêu đề</label>
-                        <input type="text" class="form-control" id="title" name="title" required />
+                        <input type="text" class="form-control" id="title" name="title" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label" for="description">Mô tả</label>

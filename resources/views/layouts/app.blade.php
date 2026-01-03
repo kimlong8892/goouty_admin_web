@@ -17,6 +17,7 @@
     <title>@yield('title', 'Dashboard') - GoOuty Admin</title>
 
     <meta name="description" content="" />
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('assets/img/favicon/favicon.ico') }}" />
@@ -39,8 +40,27 @@
 
     <!-- Vendors CSS -->
     <link rel="stylesheet" href="{{ asset('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css') }}" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
     <!-- Page CSS -->
+    <style>
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.7);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+    </style>
 
     <!-- Helpers -->
     <script src="{{ asset('assets/vendor/js/helpers.js') }}"></script>
@@ -137,6 +157,16 @@
               <a href="{{ route('trip-templates.index') }}" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-map-alt"></i>
                 <div data-i18n="Trip Templates">Mẫu chuyến đi</div>
+              </a>
+            </li>
+
+            <li class="menu-header small text-uppercase">
+              <span class="menu-header-text">Hệ thống</span>
+            </li>
+            <li class="menu-item {{ request()->routeIs('admins.*') ? 'active' : '' }}">
+              <a href="{{ route('admins.index') }}" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-user-check"></i>
+                <div data-i18n="Admins">Quản lý Admin</div>
               </a>
             </li>
           </ul>
@@ -251,6 +281,12 @@
     </div>
     <!-- / Layout wrapper -->
 
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
     <!-- Core JS -->
     <!-- build:js assets/vendor/js/core.js -->
     <script src="{{ asset('assets/vendor/libs/jquery/jquery.js') }}"></script>
@@ -262,10 +298,152 @@
     <!-- endbuild -->
 
     <!-- Vendors JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Main JS -->
     <script src="{{ asset('assets/js/main.js') }}"></script>
 
     <!-- Page JS -->
-  </body>
+    <script>
+        $(document).ready(function() {
+            // Global AJAX setup for CSRF
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                }
+            });
+
+            // Handle AJAX form submission
+            $(document).on('submit', 'form.ajax-form', function(e) {
+                e.preventDefault();
+                let form = $(this);
+                
+                // Disable HTML5 validation and manually handle
+                form.attr('novalidate', 'novalidate');
+
+                let url = form.attr('action');
+                let method = form.attr('method');
+                let formData = new FormData(this);
+
+                // Show loading
+                $('#loadingOverlay').css('display', 'flex');
+                
+                // Clear previous errors
+                form.find('.invalid-feedback').remove();
+                form.find('.is-invalid').removeClass('is-invalid');
+
+                $.ajax({
+                    url: url,
+                    type: method,
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        $('#loadingOverlay').hide();
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Thành công',
+                                text: response.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                if (response.redirect) {
+                                    window.location.href = response.redirect;
+                                }
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        $('#loadingOverlay').hide();
+                        if (xhr.status === 422) {
+                            let errors = xhr.responseJSON.errors;
+                            $.each(errors, function(key, value) {
+                                let fieldName = key;
+                                // Handle variants like 'email' or 'roles.0'
+                                let input = form.find(`[name="${fieldName}"]`);
+                                if (input.length === 0) {
+                                     // Try matching array syntax
+                                     input = form.find(`[name^="${fieldName.split('.')[0]}["]`);
+                                }
+                                
+                                input.addClass('is-invalid');
+                                // For select2 or special wrappers, we might need to append differently, 
+                                // but for standard Bootstrap 5:
+                                if (input.parent('.input-group').length) {
+                                    input.parent('.input-group').after(`<div class="invalid-feedback d-block">${value[0]}</div>`);
+                                } else {
+                                    input.after(`<div class="invalid-feedback">${value[0]}</div>`);
+                                }
+                            });
+
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Lỗi xác thực',
+                                text: 'Vui lòng kiểm tra lại các trường dữ liệu.',
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Lỗi',
+                                text: xhr.responseJSON?.message || 'Đã có lỗi xảy ra. Vui lòng thử lại.',
+                            });
+                        }
+                    }
+                });
+            });
+
+            // Handle AJAX delete with confirmation
+            $(document).on('submit', 'form.ajax-delete', function(e) {
+                e.preventDefault();
+                let form = $(this);
+                let url = form.attr('action');
+                let method = form.attr('method');
+                let formData = new FormData(this);
+
+                Swal.fire({
+                    title: 'Bạn có chắc chắn?',
+                    text: "Dữ liệu sẽ bị xóa và không thể khôi phục!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $('#loadingOverlay').css('display', 'flex');
+                        $.ajax({
+                            url: url,
+                            type: method,
+                            data: formData,
+                            processData: false,
+                            contentType: false,
+                            success: function(response) {
+                                $('#loadingOverlay').hide();
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Đã xóa',
+                                    text: response.message || 'Xóa thành công.',
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            },
+                            error: function(xhr) {
+                                $('#loadingOverlay').hide();
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Lỗi',
+                                    text: xhr.responseJSON?.message || 'Không thể xóa. Vui lòng thử lại.',
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
 </html>

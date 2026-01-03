@@ -125,23 +125,35 @@
               <h4 class="mb-2">Chào mừng đến với GoOuty Admin! 👋</h4>
               <p class="mb-4">Vui lòng đăng nhập vào tài khoản của bạn để bắt đầu</p>
 
+              @if (session('status'))
+                  <div class="alert alert-success" role="alert">
+                      {{ session('status') }}
+                  </div>
+              @endif
+
               <form id="formAuthentication" class="mb-3" action="{{ url('login') }}" method="POST">
                 @csrf
                 <div class="mb-3">
                   <label for="email" class="form-label">Email</label>
                   <input
                     type="text"
-                    class="form-control"
+                    class="form-control @error('email') is-invalid @enderror"
                     id="email"
                     name="email"
+                    value="{{ old('email') }}"
                     placeholder="Nhập email của bạn"
                     autofocus
                   />
+                  @error('email')
+                    <div class="invalid-feedback">
+                      {{ $message }}
+                    </div>
+                  @enderror
                 </div>
                 <div class="mb-3 form-password-toggle">
                   <div class="d-flex justify-content-between">
                     <label class="form-label" for="password">Mật khẩu</label>
-                    <a href="javascript:void(0);">
+                    <a href="{{ route('password.request') }}">
                       <small>Quên mật khẩu?</small>
                     </a>
                   </div>
