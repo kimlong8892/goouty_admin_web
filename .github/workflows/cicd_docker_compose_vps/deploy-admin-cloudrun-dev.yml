@@ -1,21 +1,21 @@
-name: Deploy Admin Prod Cloud Run
+name: Deploy Admin Dev Cloud Run
 
 on:
   push:
-    branches: [ "prod" ]
+    branches: [ "abc" ]
   workflow_dispatch:
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   REGION: asia-southeast1
   REPO_NAME: goouty-repo
-  SERVICE_NAME: goouty-admin-prod
+  SERVICE_NAME: goouty-admin-dev
   WORKDIR: .
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: PROD
+    environment: DEV
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -41,8 +41,8 @@ jobs:
       - name: Build and Push Docker Image
         working-directory: ${{ env.WORKDIR }}
         run: |
-          # Build Docker image for production
-          docker build -f Dockerfile.prod -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
+          # Build Docker image for dev
+          docker build -f Dockerfile.dev -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
           # Push image to Artifact Registry
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
 
@@ -53,33 +53,54 @@ jobs:
           ALL_VARS: ${{ toJson(vars) }}
         run: |
           echo "Generating environment variables..."
-          
+
+          echo "--- DEBUG INFO ---"
+          echo "Available Secret Keys (Values masked):"
+          echo "$ALL_SECRETS" | jq keys
+          echo "Available Variable Keys:"
+          echo "$ALL_VARS" | jq keys
+          echo "Secrets Mapping Config:"
+          cat .github/env-config/dev/secrets.json
+          echo "--- END DEBUG INFO ---"
+
           # 1. Load public variables from env.json
-          if [ -f .github/env-config/prod/env.json ]; then
+          if [ -f .github/env-config/dev/env.json ]; then
             # Extract PORT for Cloud Run flag (avoiding env var conflict)
-            PORT_VAL=$(jq -r '.PORT // "8080"' .github/env-config/prod/env.json)
+            PORT_VAL=$(jq -r '.PORT // "8080"' .github/env-config/dev/env.json)
             echo "PORT=$PORT_VAL" >> $GITHUB_OUTPUT
-            
+
             # Extract other vars, excluding PORT
-            jq -r 'to_entries | .[] | select(.key != "PORT") | "\(.key)=\(.value)"' .github/env-config/prod/env.json > .env.temp
+            jq -r 'to_entries | .[] | select(.key != "PORT") | "\(.key)=\(.value)"' .github/env-config/dev/env.json > .env.temp
           else
             echo "PORT=8080" >> $GITHUB_OUTPUT
           fi
-          
+
           # 2. Load secrets based on secrets.json mapping
-          if [ -f .github/env-config/prod/secrets.json ]; then
-            jq -n --argjson secrets "$ALL_SECRETS" --argjson vars "$ALL_VARS" --argjson mapping "$(cat .github/env-config/prod/secrets.json)" '
-              $mapping | to_entries | .[] | 
+          if [ -f .github/env-config/dev/secrets.json ]; then
+            echo "--- Resolving secrets from mapping ---"
+            jq -n --argjson secrets "$ALL_SECRETS" --argjson vars "$ALL_VARS" --argjson mapping "$(cat .github/env-config/dev/secrets.json)" '
+              $mapping | to_entries | .[] |
               .key as $k | .value as $v |
               ($secrets[$v] // $vars[$v]) as $val |
               if $val != null then "\($k)=\($val)" else empty end
-            ' -r >> .env.temp
+            ' -r > .env.secrets
+
+            echo "Secrets resolved:"
+            if [ -f .env.secrets ] && [ -s .env.secrets ]; then
+              cut -d= -f1 .env.secrets
+              cat .env.secrets >> .env.temp
+            else
+              echo "::warning::No secrets were resolved from secrets.json mapping!"
+            fi
           fi
 
-          echo "Debug: Keys successfully resolved and written to .env.temp:"
+          echo "--- Final .env.temp content check ---"
           if [ -f .env.temp ]; then
-            cut -d= -f1 .env.temp
-            
+            echo "Keys in .env.temp:"
+            cut -d= -f1 .env.temp | sort
+
+            echo "Total lines in .env.temp: $(wc -l < .env.temp)"
+
             # Validation: Warn if critical secrets (APP_KEY) were not resolved
             if ! grep -q "APP_KEY=" .env.temp; then
               echo "::warning::APP_KEY was NOT found in resolved variables. Consider adding 'APP_KEY' to your GitHub Environment Secrets for production use."
@@ -89,8 +110,9 @@ jobs:
              touch .env.temp
           fi
 
-          # Fix for Cloud Run: Ensure ASSET_URL matches APP_URL
+          # Laravel requires APP_KEY and other env vars
           echo "APP_ENV=production" >> .env.temp
+          # Fix for Cloud Run: Force HTTPS schema using APP_URL if available
           APP_URL_VAL=$(grep "^APP_URL=" .env.temp | cut -d= -f2- || echo "")
           if [ -n "$APP_URL_VAL" ]; then
             echo "ASSET_URL=$APP_URL_VAL" >> .env.temp
@@ -136,18 +158,18 @@ jobs:
           done < .env.temp
           echo "" >> env-vars.json
           echo "}" >> env-vars.json
-          
+
           echo "--- DEBUG: env-vars.json content ---"
           cat env-vars.json
           echo "--- END DEBUG ---"
 
           JOB_NAME="migrate-${{ env.SERVICE_NAME }}"
-          
+
           echo "Deploying/Updating Cloud Run Job: $JOB_NAME"
-          
+
           # Check if job exists and create/update accordingly
           if gcloud run jobs describe $JOB_NAME --region ${{ env.REGION }} > /dev/null 2>&1; then
-             # Update existing job
+              # Update existing job
              gcloud run jobs update $JOB_NAME \
               --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
               --env-vars-file env-vars.json \
