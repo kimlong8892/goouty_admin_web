@@ -151,16 +151,16 @@ jobs:
              gcloud run jobs update $JOB_NAME \
               --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
               --env-vars-file env-vars.json \
-              --command php \
-              --args artisan,migrate,--force \
+              --command /bin/sh \
+              --args -c,"php artisan migrate --force && php artisan db:seed --class=AdminUserSeeder --force" \
               --region ${{ env.REGION }} || echo "::warning::Failed to update migration job"
           else
              # Create new job
              gcloud run jobs create $JOB_NAME \
               --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
               --env-vars-file env-vars.json \
-              --command php \
-              --args artisan,migrate,--force \
+              --command /bin/sh \
+              --args -c,"php artisan migrate --force && php artisan db:seed --class=AdminUserSeeder --force" \
               --region ${{ env.REGION }} || echo "::warning::Failed to create migration job"
           fi
 
