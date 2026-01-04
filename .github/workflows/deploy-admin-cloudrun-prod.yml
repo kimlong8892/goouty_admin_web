@@ -2,7 +2,7 @@ name: Deploy Admin Prod Cloud Run
 
 on:
   push:
-    branches: [ "abc" ]
+    branches: [ "dev" ]
   workflow_dispatch:
 
 env:
