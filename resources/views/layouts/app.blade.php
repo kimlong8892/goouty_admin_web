@@ -131,7 +131,7 @@
                   </g>
                 </svg>
               </span>
-              <span class="app-brand-text demo menu-text fw-bolder ms-2">Sneat</span>
+              <span class="app-brand-text demo menu-text fw-bolder ms-2">{{ env('APP_NAME') }}</span>
             </a>
 
             <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
@@ -323,7 +323,7 @@
             $(document).on('submit', 'form.ajax-form', function(e) {
                 e.preventDefault();
                 let form = $(this);
-                
+
                 // Disable HTML5 validation and manually handle
                 form.attr('novalidate', 'novalidate');
 
@@ -333,7 +333,7 @@
 
                 // Show loading
                 $('#loadingOverlay').css('display', 'flex');
-                
+
                 // Clear previous errors
                 form.find('.invalid-feedback').remove();
                 form.find('.is-invalid').removeClass('is-invalid');
@@ -372,9 +372,9 @@
                                      // Try matching array syntax
                                      input = form.find(`[name^="${fieldName.split('.')[0]}["]`);
                                 }
-                                
+
                                 input.addClass('is-invalid');
-                                // For select2 or special wrappers, we might need to append differently, 
+                                // For select2 or special wrappers, we might need to append differently,
                                 // but for standard Bootstrap 5:
                                 if (input.parent('.input-group').length) {
                                     input.parent('.input-group').after(`<div class="invalid-feedback d-block">${value[0]}</div>`);
