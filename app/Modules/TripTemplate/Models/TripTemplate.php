@@ -24,6 +24,7 @@ class TripTemplate extends Model
         'isPublic',
         'userId',
         'avatar',
+        'cost',
     ];
     
     const CREATED_AT = 'createdAt';

@@ -21,14 +21,18 @@
                         <textarea class="form-control" id="description" name="description" rows="3"></textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="provinceId">Tỉnh thành (Province ID)</label>
+                        <label class="form-label" for="provinceId">Tỉnh thành (Tìm kiếm)</label>
                          {{-- Using text input for now as Province relationship is simple model --}}
-                         <select class="form-select" id="provinceId" name="provinceId">
+                         <select class="form-select" id="provinceId" name="provinceId" style="width: 100%;">
                             <option value="">Chọn tỉnh thành</option>
                             @foreach($provinces as $province)
                                 <option value="{{ $province->id }}">{{ $province->name }}</option>
                             @endforeach
                         </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="cost">Số tiền (VNĐ / người)</label>
+                        <input type="number" class="form-control" id="cost" name="cost" />
                     </div>
                      <div class="mb-3">
                         <label class="form-label" for="avatar">Avatar URL</label>
@@ -54,3 +58,24 @@
     </div>
 </div>
 @endsection
+
+@push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+@endpush
+
+@push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        if ($('#provinceId').length) {
+            $('#provinceId').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Chọn tỉnh thành',
+                allowClear: true,
+                width: '100%'
+            });
+        }
+    });
+</script>
+@endpush

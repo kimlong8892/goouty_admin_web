@@ -61,6 +61,7 @@
             height: 3rem;
         }
     </style>
+    @stack('styles')
 
     <!-- Helpers -->
     <script src="{{ asset('assets/vendor/js/helpers.js') }}"></script>
@@ -451,5 +452,6 @@
             });
         });
     </script>
+    @stack('scripts')
 </body>
 </html>

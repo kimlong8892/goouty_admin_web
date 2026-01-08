@@ -22,7 +22,7 @@
                 <div class="row">
                     <div class="col-md-3">
                         @if($template->avatar)
-                            <img src="{{ $template->avatar }}" alt="Avatar" class="img-fluid rounded mb-3">
+                            <img src="{{ $template->avatar }}" alt="Avatar" class="img-fluid rounded mb-3" onerror="this.style.display='none'; this.insertAdjacentHTML('afterend', '<div class=\'bg-light d-flex align-items-center justify-content-center rounded mb-3\' style=\'height: 200px;\'><i class=\'bx bx-image-alt\' style=\'font-size: 3rem; color: #ccc;\'></i></div>');">
                         @else
                             <div class="bg-light d-flex align-items-center justify-content-center rounded mb-3" style="height: 200px;">
                                 <i class="bx bx-image-alt" style="font-size: 3rem; color: #ccc;"></i>
@@ -171,7 +171,7 @@
                                                         <div class="row">
                                                             <div class="col-md-6 mb-3">
                                                                 <label class="form-label">Thời gian bắt đầu</label>
-                                                                <input type="text" name="startTime" class="form-control" placeholder="HH:mm" value="{{ $activity->startTime }}">
+                                                                <input type="time" name="startTime" class="form-control" value="{{ $activity->startTime }}" onclick="if(this.showPicker) this.showPicker()" style="cursor: pointer;">
                                                             </div>
                                                             <div class="col-md-6 mb-3">
                                                                 <label class="form-label">Thời lượng (phút)</label>
@@ -278,7 +278,7 @@
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Thời gian bắt đầu</label>
-                                        <input type="text" name="startTime" class="form-control" placeholder="HH:mm">
+                                        <input type="time" name="startTime" class="form-control" onclick="if(this.showPicker) this.showPicker()" style="cursor: pointer;">
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Thời lượng (phút)</label>
