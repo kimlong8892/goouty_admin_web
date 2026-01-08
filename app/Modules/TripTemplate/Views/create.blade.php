@@ -10,7 +10,7 @@
                 <h5 class="mb-0">Thêm mới Mẫu chuyến đi</h5>
             </div>
             <div class="card-body">
-                <form action="{{ route('trip-templates.store') }}" method="POST" class="ajax-form">
+                <form action="{{ route('trip-templates.store') }}" method="POST" class="ajax-form" enctype="multipart/form-data">
                     @csrf
                     <div class="mb-3">
                         <label class="form-label" for="title">Tiêu đề</label>
@@ -35,8 +35,8 @@
                         <input type="number" class="form-control" id="cost" name="cost" />
                     </div>
                      <div class="mb-3">
-                        <label class="form-label" for="avatar">Avatar URL</label>
-                        <input type="text" class="form-control" id="avatar" name="avatar" />
+                        <label class="form-label" for="avatar">Avatar Image</label>
+                        <input type="file" class="form-control" id="avatar" name="avatar" accept="image/*" />
                     </div>
                     <div class="mb-3">
                         <div class="form-check form-switch mb-2">

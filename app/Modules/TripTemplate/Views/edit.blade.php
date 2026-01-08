@@ -10,7 +10,7 @@
                 <h5 class="mb-0">Chỉnh sửa Mẫu chuyến đi</h5>
             </div>
             <div class="card-body">
-                <form action="{{ route('trip-templates.update', $template->id) }}" method="POST" class="ajax-form">
+                <form action="{{ route('trip-templates.update', $template->id) }}" method="POST" class="ajax-form" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
                     <div class="mb-3">
@@ -36,9 +36,14 @@
                         <label class="form-label" for="cost">Số tiền (VNĐ / người)</label>
                         <input type="number" class="form-control" id="cost" name="cost" value="{{ $template->cost ?? '' }}" />
                     </div>
-                     <div class="mb-3">
-                        <label class="form-label" for="avatar">Avatar URL</label>
-                        <input type="text" class="form-control" id="avatar" name="avatar" value="{{ $template->avatar }}" />
+                    <div class="mb-3">
+                        <label class="form-label" for="avatar">Avatar Image</label>
+                        <input type="file" class="form-control" id="avatar" name="avatar" accept="image/*" />
+                        @if($template->avatar)
+                            <div class="mt-2">
+                                <img src="{{ $template->avatar }}" alt="Avatar" class="img-thumbnail" style="max-height: 150px;">
+                            </div>
+                        @endif
                     </div>
                     <div class="mb-3">
                         <div class="form-check form-switch mb-2">

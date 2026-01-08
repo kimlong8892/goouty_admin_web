@@ -9,6 +9,7 @@ use App\Modules\TripTemplate\Models\Province;
 use App\Modules\TripTemplate\Requests\StoreTripTemplateRequest;
 use App\Modules\TripTemplate\Requests\UpdateTripTemplateRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class TripTemplateController extends Controller
 {
@@ -38,12 +39,18 @@ class TripTemplateController extends Controller
             return back()->with('error', 'Không tìm thấy Public User để gán.');
         }
 
+        $avatarUrl = null;
+        if ($request->hasFile('avatar')) {
+            $path = $request->file('avatar')->store('trip-templates/avatars', 's3');
+            $avatarUrl = Storage::disk('s3')->url($path);
+        }
+
         TripTemplate::create([
             'title' => $request->title,
             'description' => $request->description,
             'provinceId' => $request->provinceId,
             'isPublic' => $request->has('isPublic'),
-            'avatar' => $request->avatar,
+            'avatar' => $avatarUrl,
             'userId' => $user->id,
         ]);
 
@@ -77,12 +84,25 @@ class TripTemplateController extends Controller
         }
 
 
+        $avatarUrl = $template->avatar;
+        if ($request->hasFile('avatar')) {
+            // Optional: Delete old avatar from S3 if it exists
+            if ($avatarUrl) {
+                // Extract path from URL if possible, or store path in DB instead of URL.
+                // For now, let's just upload the new one.
+                // $oldPath = str_replace(Storage::disk('s3')->url(''), '', $avatarUrl);
+                // Storage::disk('s3')->delete($oldPath);
+            }
+            $path = $request->file('avatar')->store('trip-templates/avatars', 's3');
+            $avatarUrl = Storage::disk('s3')->url($path);
+        }
+
         $template->update([
             'title' => $request->title,
             'description' => $request->description,
             'provinceId' => $request->provinceId,
             'isPublic' => $request->has('isPublic'),
-            'avatar' => $request->avatar,
+            'avatar' => $avatarUrl,
             'userId' => $currentUserId 
         ]);
 

@@ -16,7 +16,7 @@ class StoreTripTemplateRequest extends FormRequest
         return [
             'title' => 'required|string|max:255',
             'provinceId' => 'nullable|exists:public.Province,id',
-            'avatar' => 'nullable|string',
+            'avatar' => 'nullable|image|max:5120',
             'description' => 'nullable|string',
         ];
     }
