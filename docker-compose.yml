@@ -2,13 +2,19 @@ services:
   admin_nextjs:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: admin_nextjs
     restart: always
     ports:
-      - "8000:3000"
+      - "8000:8000"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
     networks:
       - goouty-network
 

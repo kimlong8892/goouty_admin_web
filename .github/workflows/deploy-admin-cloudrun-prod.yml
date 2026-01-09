@@ -59,7 +59,7 @@ jobs:
             # Extract basic vars
             jq -r 'to_entries | .[] | "\(.key)=\(.value)"' .github/env-config/prod/env.json > .env.temp
           else
-            echo "PORT=3000" > .env.temp
+            echo "PORT=8000" > .env.temp
           fi
 
           # 2. Load secrets based on secrets.json mapping
@@ -101,7 +101,7 @@ jobs:
           # Extract PORT for Cloud Run flag
           PORT_VAL=$(grep "^PORT=" .env.temp | cut -d= -f2-)
           if [ -z "$PORT_VAL" ]; then
-            PORT_VAL="3000"
+            PORT_VAL="8000"
           fi
           echo "PORT=$PORT_VAL" >> $GITHUB_OUTPUT
 

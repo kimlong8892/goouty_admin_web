@@ -64,5 +64,8 @@
       "react": "^16.8.0 || ^17 || ^18 || ^19",
       "react-dom": "^16.8.0 || ^17 || ^18 || ^19"
     }
+  },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
   }
 }

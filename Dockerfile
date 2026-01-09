@@ -12,6 +12,7 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN npx prisma generate
 RUN npm run build
 
 FROM base AS runner
@@ -38,8 +39,8 @@ USER nextjs
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 8000
 
-ENV PORT=3000
+ENV PORT=8000
 
 CMD ["node", "server.js"]
