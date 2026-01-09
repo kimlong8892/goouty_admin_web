@@ -1,7 +1,8 @@
 FROM node:20-alpine AS base
+RUN apk add --no-cache openssl libssl3
 
 FROM base AS deps
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl libssl3
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
