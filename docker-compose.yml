@@ -1,0 +1,18 @@
+services:
+  admin_nextjs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: admin_nextjs
+    restart: always
+    ports:
+      - "8000:3000"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - goouty-network
+
+networks:
+  goouty-network:
+    external: true
+    name: goouty-network

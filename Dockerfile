@@ -1,38 +1,61 @@
-FROM php:8.4-fpm-alpine
+FROM node:20-alpine AS base
 
-WORKDIR /var/www
+# Install dependencies only when needed
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
 
-RUN apk update && apk add --no-cache \
-    build-base \
-    libpng-dev \
-    libzip-dev \
-    zip \
-    unzip \
-    git \
-    curl \
-    oniguruma-dev \
-    libxml2-dev \
-    postgresql-dev
+# Install dependencies based on the preferred package manager
+COPY package.json package-lock.json* ./
+RUN npm ci
 
-RUN docker-php-ext-install pdo_mysql pdo_pgsql pgsql mbstring exif pcntl bcmath gd zip
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
 
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Next.js collects completely anonymous education about general usage.
+# Learn more here: https://nextjs.org/telemetry
+# RUN npx next telemetry disable
 
-WORKDIR /var/www
+RUN npm run build
 
-# Copy composer files first for caching
-COPY composer.json composer.lock ./
+# Production image, copy all the files and run next
+FROM base AS runner
+WORKDIR /app
 
-# Install dependencies
-RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
+ENV NODE_ENV production
+# RUN npx next telemetry disable
 
-# Copy the rest of the application
-COPY . /var/www
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
-# Finish composer setup
-RUN composer dump-autoload --optimize
+COPY --from=builder /app/public ./public
 
-RUN chown -R www-data:www-data /var/www
+# Set the correct permission for prerender cache
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
 
-EXPOSE 9000
-CMD ["php-fpm"]
+# Automatically leverage output traces to reduce image size
+# https://nextjs.org/docs/advanced-features/output-file-tracing
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+
+# Install prisma CLI for migrations
+USER root
+RUN npm install -g prisma
+USER nextjs
+
+USER nextjs
+
+EXPOSE 3000
+
+ENV PORT 3000
+# set hostname to localhost
+ENV HOSTNAME "0.0.0.0"
+
+# server.js is created by next build from the standalone output
+# https://nextjs.org/docs/pages/api-reference/next-config-js/output
+CMD ["node", "server.js"]

@@ -41,8 +41,8 @@ jobs:
       - name: Build and Push Docker Image
         working-directory: ${{ env.WORKDIR }}
         run: |
-          # Build Docker image for dev
-          docker build -f Dockerfile.dev -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
+          # Build Docker image for dev using the standard Dockerfile
+          docker build -f Dockerfile -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
           # Push image to Artifact Registry
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
 
@@ -54,30 +54,16 @@ jobs:
         run: |
           echo "Generating environment variables..."
 
-          echo "--- DEBUG INFO ---"
-          echo "Available Secret Keys (Values masked):"
-          echo "$ALL_SECRETS" | jq keys
-          echo "Available Variable Keys:"
-          echo "$ALL_VARS" | jq keys
-          echo "Secrets Mapping Config:"
-          cat .github/env-config/dev/secrets.json
-          echo "--- END DEBUG INFO ---"
-
           # 1. Load public variables from env.json
           if [ -f .github/env-config/dev/env.json ]; then
-            # Extract PORT for Cloud Run flag (avoiding env var conflict)
-            PORT_VAL=$(jq -r '.PORT // "8080"' .github/env-config/dev/env.json)
-            echo "PORT=$PORT_VAL" >> $GITHUB_OUTPUT
-
-            # Extract other vars, excluding PORT
-            jq -r 'to_entries | .[] | select(.key != "PORT") | "\(.key)=\(.value)"' .github/env-config/dev/env.json > .env.temp
+            # Extract basic vars
+            jq -r 'to_entries | .[] | "\(.key)=\(.value)"' .github/env-config/dev/env.json > .env.temp
           else
-            echo "PORT=8080" >> $GITHUB_OUTPUT
+            echo "PORT=3000" > .env.temp
           fi
 
           # 2. Load secrets based on secrets.json mapping
           if [ -f .github/env-config/dev/secrets.json ]; then
-            echo "--- Resolving secrets from mapping ---"
             jq -n --argjson secrets "$ALL_SECRETS" --argjson vars "$ALL_VARS" --argjson mapping "$(cat .github/env-config/dev/secrets.json)" '
               $mapping | to_entries | .[] |
               .key as $k | .value as $v |
@@ -85,37 +71,25 @@ jobs:
               if $val != null then "\($k)=\($val)" else empty end
             ' -r > .env.secrets
 
-            echo "Secrets resolved:"
             if [ -f .env.secrets ] && [ -s .env.secrets ]; then
-              cut -d= -f1 .env.secrets
               cat .env.secrets >> .env.temp
-            else
-              echo "::warning::No secrets were resolved from secrets.json mapping!"
             fi
           fi
-
-          echo "--- Final .env.temp content check ---"
-          if [ -f .env.temp ]; then
-            echo "Keys in .env.temp:"
-            cut -d= -f1 .env.temp | sort
-
-            echo "Total lines in .env.temp: $(wc -l < .env.temp)"
-
-            # Validation: Warn if critical secrets (APP_KEY) were not resolved
-            if ! grep -q "APP_KEY=" .env.temp; then
-              echo "::warning::APP_KEY was NOT found in resolved variables. Consider adding 'APP_KEY' to your GitHub Environment Secrets for production use."
+          
+          # 3. Construct DATABASE_URL if not present but components are
+          if ! grep -q "DATABASE_URL=" .env.temp; then
+            echo "Attempting to construct DATABASE_URL from components..."
+            DB_HOST=$(grep "^DB_HOST=" .env.temp | cut -d= -f2- || echo "")
+            DB_PORT=$(grep "^DB_PORT=" .env.temp | cut -d= -f2- || echo "5432")
+            DB_NAME=$(grep "^DB_DATABASE=" .env.temp | cut -d= -f2- || grep "^DB_SCHEMA=" .env.temp | cut -d= -f2- || echo "")
+            DB_USER=$(grep "^DB_USERNAME=" .env.temp | cut -d= -f2- || echo "")
+            DB_PASS=$(grep "^DB_PASSWORD=" .env.temp | cut -d= -f2- || echo "")
+            
+            if [ -n "$DB_HOST" ] && [ -n "$DB_USER" ] && [ -n "$DB_PASS" ] && [ -n "$DB_NAME" ]; then
+               echo "Constructing DATABASE_URL..."
+               # Use perl for safe url encoding if needed, or simple string for now (assuming no special chars blocks in basic pass)
+               echo "DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}" >> .env.temp
             fi
-          else
-             echo "::warning::No .env.temp file found, creating empty one."
-             touch .env.temp
-          fi
-
-          # Laravel requires APP_KEY and other env vars
-          echo "APP_ENV=production" >> .env.temp
-          # Fix for Cloud Run: Force HTTPS schema using APP_URL if available
-          APP_URL_VAL=$(grep "^APP_URL=" .env.temp | cut -d= -f2- || echo "")
-          if [ -n "$APP_URL_VAL" ]; then
-            echo "ASSET_URL=$APP_URL_VAL" >> .env.temp
           fi
 
           # 4. Save to GITHUB_OUTPUT for next step
@@ -124,25 +98,22 @@ jobs:
             cat .env.temp
             echo "EOF"
           } >> $GITHUB_OUTPUT
+          
+          # Extract PORT for Cloud Run flag
+          PORT_VAL=$(grep "^PORT=" .env.temp | cut -d= -f2- || echo "3000")
+          echo "PORT=$PORT_VAL" >> $GITHUB_OUTPUT
 
       - name: Run Database Migration
-        continue-on-error: true
+        continue-on-error: false
         run: |
           echo "Preparing environment variables for Cloud Run Job..."
 
-          if [ ! -f .env.temp ]; then
-            echo "::warning::.env.temp file not found. Skipping migration."
-            exit 0
-          fi
-
-          # Check if .env.temp has content
           if [ ! -s .env.temp ]; then
-            echo "::warning::.env.temp is empty. Skipping migration as no environment variables are configured."
+            echo "::warning::.env.temp is empty. Skipping migration."
             exit 0
           fi
 
-          # Convert .env format to JSON format for gcloud (more reliable than YAML)
-          echo "Creating env vars JSON file..."
+          # Convert .env format to JSON format for gcloud
           echo "{" > env-vars.json
           first=true
           while IFS='=' read -r key value; do
@@ -159,37 +130,31 @@ jobs:
           echo "" >> env-vars.json
           echo "}" >> env-vars.json
 
-          echo "--- DEBUG: env-vars.json content ---"
-          cat env-vars.json
-          echo "--- END DEBUG ---"
-
           JOB_NAME="migrate-${{ env.SERVICE_NAME }}"
 
           echo "Deploying/Updating Cloud Run Job: $JOB_NAME"
 
           # Check if job exists and create/update accordingly
+          # Using npx prisma migrate deploy
+          
           if gcloud run jobs describe $JOB_NAME --region ${{ env.REGION }} > /dev/null 2>&1; then
-              # Update existing job
              gcloud run jobs update $JOB_NAME \
               --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
               --env-vars-file env-vars.json \
-              --command /bin/sh \
-              --args -c,"php artisan migrate --force && php artisan db:seed --class=AdminUserSeeder --force" \
-              --region ${{ env.REGION }} || echo "::warning::Failed to update migration job"
+              --command npx \
+              --args prisma,migrate,deploy \
+              --region ${{ env.REGION }}
           else
-             # Create new job
              gcloud run jobs create $JOB_NAME \
               --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
               --env-vars-file env-vars.json \
-              --command /bin/sh \
-              --args -c,"php artisan migrate --force && php artisan db:seed --class=AdminUserSeeder --force" \
-              --region ${{ env.REGION }} || echo "::warning::Failed to create migration job"
+              --command npx \
+              --args prisma,migrate,deploy \
+              --region ${{ env.REGION }}
           fi
 
           echo "Executing migration..."
-          if ! gcloud run jobs execute $JOB_NAME --region ${{ env.REGION }} --wait; then
-            echo "::warning::Migration failed but continuing deployment..."
-          fi
+          gcloud run jobs execute $JOB_NAME --region ${{ env.REGION }} --wait
 
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
