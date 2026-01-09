@@ -99,7 +99,10 @@ jobs:
           } >> $GITHUB_OUTPUT
           
           # Extract PORT for Cloud Run flag
-          PORT_VAL=$(grep "^PORT=" .env.temp | cut -d= -f2- || echo "3000")
+          PORT_VAL=$(grep "^PORT=" .env.temp | cut -d= -f2-)
+          if [ -z "$PORT_VAL" ]; then
+            PORT_VAL="3000"
+          fi
           echo "PORT=$PORT_VAL" >> $GITHUB_OUTPUT
 
       - name: Run Database Migration
