@@ -68,19 +68,25 @@ jobs:
             fi
           fi
           
-          # 3. Construct DATABASE_URL if not present but components are
+          # 3. Construct DATABASE_URL if not present
           if ! grep -q "DATABASE_URL=" .env.temp; then
-            echo "Attempting to construct DATABASE_URL from components..."
-            DB_HOST=$(grep "^DB_HOST=" .env.temp | cut -d= -f2- || echo "")
-            DB_PORT=$(grep "^DB_PORT=" .env.temp | cut -d= -f2- || echo "5432")
-            DB_NAME=$(grep "^DB_DATABASE=" .env.temp | cut -d= -f2- || grep "^DB_SCHEMA=" .env.temp | cut -d= -f2- || echo "")
-            DB_USER=$(grep "^DB_USERNAME=" .env.temp | cut -d= -f2- || echo "")
-            DB_PASS=$(grep "^DB_PASSWORD=" .env.temp | cut -d= -f2- || echo "")
-            
-            if [ -n "$DB_HOST" ] && [ -n "$DB_USER" ] && [ -n "$DB_PASS" ] && [ -n "$DB_NAME" ]; then
-               echo "Constructing DATABASE_URL..."
-               # Use perl for safe url encoding if needed, or simple string for now (assuming no special chars blocks in basic pass)
-               echo "DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}" >> .env.temp
+            # Check if DB_URL is provided instead
+            DB_URL_VAL=$(grep "^DB_URL=" .env.temp | cut -d= -f2- || echo "")
+            if [ -n "$DB_URL_VAL" ]; then
+                echo "Using DB_URL as DATABASE_URL..."
+                echo "DATABASE_URL=${DB_URL_VAL}" >> .env.temp
+            else
+                echo "Attempting to construct DATABASE_URL from components..."
+                DB_HOST=$(grep "^DB_HOST=" .env.temp | cut -d= -f2- || echo "")
+                DB_PORT=$(grep "^DB_PORT=" .env.temp | cut -d= -f2- || echo "5432")
+                DB_NAME=$(grep "^DB_DATABASE=" .env.temp | cut -d= -f2- || grep "^DB_SCHEMA=" .env.temp | cut -d= -f2- || echo "")
+                DB_USER=$(grep "^DB_USERNAME=" .env.temp | cut -d= -f2- || echo "")
+                DB_PASS=$(grep "^DB_PASSWORD=" .env.temp | cut -d= -f2- || echo "")
+                
+                if [ -n "$DB_HOST" ] && [ -n "$DB_USER" ] && [ -n "$DB_PASS" ] && [ -n "$DB_NAME" ]; then
+                   echo "Constructing DATABASE_URL..."
+                   echo "DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}" >> .env.temp
+                fi
             fi
           fi
 
