@@ -38,14 +38,6 @@ jobs:
         run: |
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
-      - name: Build and Push Docker Image
-        working-directory: ${{ env.WORKDIR }}
-        run: |
-          # Build Docker image for dev using the standard Dockerfile
-          docker build -f Dockerfile -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
-          # Push image to Artifact Registry
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
-
       - name: Prepare Environment Variables
         id: env-vars
         env:
@@ -102,6 +94,30 @@ jobs:
           # Extract PORT for Cloud Run flag
           PORT_VAL=$(grep "^PORT=" .env.temp | cut -d= -f2- || echo "3000")
           echo "PORT=$PORT_VAL" >> $GITHUB_OUTPUT
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: |
+          export $(grep -v '^#' .env.temp | xargs)
+          npx prisma generate
+
+      - name: Build and Push Docker Image
+        working-directory: ${{ env.WORKDIR }}
+        run: |
+          # Build Docker image for dev using the standard Dockerfile
+          docker build -f Dockerfile -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
+          # Push image to Artifact Registry
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+
+
 
       - name: Run Database Migration
         continue-on-error: false

@@ -15,16 +15,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma Client
-RUN npx prisma generate
-
 # Next.js collects completely anonymous education about general usage.
 # Learn more here: https://nextjs.org/telemetry
 # RUN npx next telemetry disable
 
 # Build the application
-# Set a dummy DATABASE_URL to allow the build to proceed without a real database connection
-ENV DATABASE_URL="postgresql://user:password@localhost:5432/goouty"
 RUN npm run build
 
 # Production image, copy all the files and run next
