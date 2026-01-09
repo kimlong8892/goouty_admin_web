@@ -20,6 +20,8 @@ COPY . .
 # RUN npx next telemetry disable
 
 # Build the application
+ARG DATABASE_URL
+ENV DATABASE_URL=$DATABASE_URL
 RUN npm run build
 
 # Production image, copy all the files and run next

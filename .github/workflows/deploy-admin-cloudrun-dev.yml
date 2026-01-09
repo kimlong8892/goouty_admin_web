@@ -118,8 +118,13 @@ jobs:
       - name: Build and Push Docker Image
         working-directory: ${{ env.WORKDIR }}
         run: |
+          # Export env from .env.temp and pass it to docker build
+          export $(grep -v '^#' .env.temp | xargs)
+          
           # Build Docker image for dev using the standard Dockerfile
-          docker build -f Dockerfile -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
+          docker build -f Dockerfile \
+            --build-arg DATABASE_URL="$DATABASE_URL" \
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
           # Push image to Artifact Registry
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
 
