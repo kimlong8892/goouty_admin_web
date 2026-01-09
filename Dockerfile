@@ -15,6 +15,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Generate Prisma Client
+RUN npx prisma generate
+
 # Next.js collects completely anonymous education about general usage.
 # Learn more here: https://nextjs.org/telemetry
 # RUN npx next telemetry disable
