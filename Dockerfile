@@ -22,13 +22,16 @@ RUN npx prisma generate
 # Learn more here: https://nextjs.org/telemetry
 # RUN npx next telemetry disable
 
+# Build the application
+# Set a dummy DATABASE_URL to allow the build to proceed without a real database connection
+ENV DATABASE_URL="postgresql://user:password@localhost:5432/goouty"
 RUN npm run build
 
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 # RUN npx next telemetry disable
 
 RUN addgroup --system --gid 1001 nodejs
@@ -55,9 +58,9 @@ USER nextjs
 
 EXPOSE 3000
 
-ENV PORT 3000
+ENV PORT=3000
 # set hostname to localhost
-ENV HOSTNAME "0.0.0.0"
+ENV HOSTNAME="0.0.0.0"
 
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/next-config-js/output
