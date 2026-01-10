@@ -115,41 +115,26 @@ jobs:
             exit 0
           fi
 
-          # Convert .env format to JSON format for gcloud
-          echo "{" > env-vars.json
-          first=true
-          while IFS='=' read -r key value; do
-            [ -z "$key" ] && continue
-            if [ "$first" = true ]; then
-              first=false
-            else
-              echo "," >> env-vars.json
-            fi
-            # Escape backslashes and quotes for JSON
-            value_json=$(echo "$value" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g')
-            echo -n "  \"$key\": \"$value_json\"" >> env-vars.json
-          done < .env.temp
-          echo "" >> env-vars.json
-          echo "}" >> env-vars.json
+          # Convert .env format to JSON format for gcloud using jq
+          grep -v '^#' .env.temp | grep -v '^$' | jq -R 'split("=") | select(length>=2) | {(.[0]): (.[1:] | join("="))}' | jq -s 'add' > env-vars.json
 
           JOB_NAME="migrate-${{ env.SERVICE_NAME }}"
 
           echo "Deploying/Updating Cloud Run Job: $JOB_NAME"
 
-          # Check if job exists and create/update accordingly
           if gcloud run jobs describe $JOB_NAME --region ${{ env.REGION }} > /dev/null 2>&1; then
              gcloud run jobs update $JOB_NAME \
               --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
               --env-vars-file env-vars.json \
               --command npx \
-              --args prisma,migrate,deploy \
+              --args prisma,migrate,deploy,--schema=./prisma/schema.prisma \
               --region ${{ env.REGION }}
           else
              gcloud run jobs create $JOB_NAME \
               --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
               --env-vars-file env-vars.json \
               --command npx \
-              --args prisma,migrate,deploy \
+              --args prisma,migrate,deploy,--schema=./prisma/schema.prisma \
               --region ${{ env.REGION }}
           fi
 
