@@ -2,7 +2,7 @@
 import { signOut, useSession } from "next-auth/react";
 import React, { useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
-import { UserCircleIcon, ChevronDownIcon } from "@/icons";
+import { ChevronDownIcon } from "@/icons";
 
 export default function UserDropdown() {
   const { data: session } = useSession();
@@ -29,7 +29,6 @@ export default function UserDropdown() {
         onClick={toggleDropdown}
         className="flex items-center h-11 gap-2 text-gray-700 dark:text-gray-400 dropdown-toggle"
       >
-        <UserCircleIcon className="w-8 h-8 fill-gray-500 dark:fill-gray-400" />
         <span className="font-medium text-theme-sm">{userName}</span>
         <ChevronDownIcon
           className={`w-4 h-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
