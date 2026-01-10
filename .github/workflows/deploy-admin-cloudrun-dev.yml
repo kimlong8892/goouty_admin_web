@@ -142,50 +142,18 @@ jobs:
 
 
       - name: Run Database Migration
-        continue-on-error: false
         run: |
-          echo "Preparing environment variables for Cloud Run Job..."
-
-          if [ ! -s .env.temp ]; then
-            echo "::warning::.env.temp is empty. Skipping migration."
-            exit 0
-          fi
-
-          # Convert .env format to JSON format for gcloud using jq
-          # Exclude PORT as it is a reserved name for Cloud Run Jobs
-          grep -v '^#' .env.temp | grep -v '^$' | grep -v '^PORT=' | jq -R 'split("=") | select(length>=2) | {(.[0]): (.[1:] | join("="))}' | jq -s 'add' > env-vars.json
-
-          JOB_NAME="migrate-${{ env.SERVICE_NAME }}"
-
-          echo "Deploying/Updating Cloud Run Job: $JOB_NAME"
-
-          # Use prisma migrate deploy directly if installed, or npx prisma
-          # We'll use npx to be safe but add --schema for clarity
-          
-          if gcloud run jobs describe $JOB_NAME --region ${{ env.REGION }} > /dev/null 2>&1; then
-             gcloud run jobs update $JOB_NAME \
-              --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
-              --env-vars-file env-vars.json \
-              --command npx \
-              --args prisma,migrate,deploy,--schema=./prisma/schema.prisma \
-              --region ${{ env.REGION }}
+          echo "Running migration directly from runner..."
+          if [ -f .env.temp ]; then
+            # Load environment variables for the migration command
+            set -a
+            source .env.temp
+            set +a
+            
+            # Run the migration
+            npx prisma migrate deploy --schema=./prisma/schema.prisma
           else
-             gcloud run jobs create $JOB_NAME \
-              --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
-              --env-vars-file env-vars.json \
-              --command npx \
-              --args prisma,migrate,deploy,--schema=./prisma/schema.prisma \
-              --region ${{ env.REGION }}
-          fi
-
-          echo "Executing migration..."
-          EXECUTION_NAME=$(gcloud run jobs execute $JOB_NAME --region ${{ env.REGION }} --format='value(metadata.name)')
-          echo "Execution started: $EXECUTION_NAME"
-          
-          if ! gcloud run executions wait $EXECUTION_NAME --region ${{ env.REGION }}; then
-            echo "Migration failed. Fetching container logs for execution: $EXECUTION_NAME"
-            # Get the logs from the execution. We use a filter that targets the execution name specifically.
-            gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=$JOB_NAME AND labels.\"run.googleapis.com/execution_name\"=$EXECUTION_NAME" --limit=200 --format="value(textPayload,jsonPayload.message)"
+            echo "Error: .env.temp not found. Cannot run migration."
             exit 1
           fi
 
