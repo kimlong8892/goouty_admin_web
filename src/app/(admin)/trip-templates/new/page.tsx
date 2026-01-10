@@ -1,8 +1,13 @@
 import { initializeDataSource } from "@/lib/typeorm";
 import { Province } from "@/entities/Province";
 import TripTemplateForm from "../_components/TripTemplateForm";
+import { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+    title: "Create Trip Template",
+};
 
 export default async function NewTripTemplatePage() {
     const dataSource = await initializeDataSource();

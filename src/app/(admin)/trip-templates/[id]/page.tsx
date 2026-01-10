@@ -3,11 +3,25 @@ import { TripTemplate } from "@/entities/TripTemplate";
 import { Province } from "@/entities/Province";
 import TripTemplateForm from "../_components/TripTemplateForm";
 import { notFound } from "next/navigation";
+import { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
 interface PageProps {
     params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+    const params = await props.params;
+    const dataSource = await initializeDataSource();
+    const tripTemplateRepo = dataSource.getRepository<TripTemplate>("TripTemplate");
+    const template = await tripTemplateRepo.findOne({
+        where: { id: params.id }
+    });
+
+    return {
+        title: template ? `Edit ${template.title}` : "Edit Trip Template",
+    };
 }
 
 export default async function TripTemplateFormPage(props: PageProps) {
