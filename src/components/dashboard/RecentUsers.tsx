@@ -1,5 +1,6 @@
 import React from "react";
 import ComponentCard from "@/components/common/ComponentCard";
+import { formatDateReadable } from "@/lib/date-utils";
 interface RecentUsersProps {
     users: any[];
 }
@@ -53,7 +54,7 @@ const RecentUsers: React.FC<RecentUsersProps> = ({ users }) => {
                                     {u.email}
                                 </td>
                                 <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                                    {new Date(u.createdAt).toLocaleDateString()}
+                                    {formatDateReadable(u.createdAt)}
                                 </td>
                             </tr>
                         ))}

@@ -1,5 +1,6 @@
 import React from "react";
 import ComponentCard from "@/components/common/ComponentCard";
+import { formatDateReadable } from "@/lib/date-utils";
 
 interface RecentTripsProps {
     trips: any[];
@@ -38,7 +39,7 @@ const RecentTrips: React.FC<RecentTripsProps> = ({ trips }) => {
                                     {trip.user.fullName || trip.user.email}
                                 </td>
                                 <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                                    {trip.startDate ? new Date(trip.startDate).toLocaleDateString() : "TBD"}
+                                    {trip.startDate ? formatDateReadable(trip.startDate) : "TBD"}
                                 </td>
                                 <td className="whitespace-nowrap px-4 py-3 text-sm">
                                     <span
