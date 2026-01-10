@@ -9,6 +9,11 @@ import ExcelActions from "./ExcelActions";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+    title: "Trip Templates",
+};
+
+
 interface PageProps {
     searchParams: Promise<{
         page?: string;

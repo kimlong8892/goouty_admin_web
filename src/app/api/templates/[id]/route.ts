@@ -9,7 +9,7 @@ export async function GET(
     try {
         const { id } = await params;
         const dataSource = await initializeDataSource();
-        const repo = dataSource.getRepository(Template);
+        const repo = dataSource.getRepository("Template");
 
         const template = await repo.findOne({ where: { id } });
         if (!template) {
@@ -31,7 +31,7 @@ export async function PUT(
         const { id } = await params;
         const body = await req.json();
         const dataSource = await initializeDataSource();
-        const repo = dataSource.getRepository(Template);
+        const repo = dataSource.getRepository("Template");
 
         let template = await repo.findOne({ where: { id } });
         if (!template) {
@@ -56,7 +56,7 @@ export async function DELETE(
     try {
         const { id } = await params;
         const dataSource = await initializeDataSource();
-        const repo = dataSource.getRepository(Template);
+        const repo = dataSource.getRepository("Template");
 
         const result = await repo.delete(id);
         if (result.affected === 0) {

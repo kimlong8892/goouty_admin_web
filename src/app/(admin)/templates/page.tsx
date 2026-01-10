@@ -5,9 +5,14 @@ import DeleteTemplateButton from "./_components/DeleteTemplateButton";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+    title: "Templates",
+};
+
+
 export default async function TemplatesPage() {
     const dataSource = await initializeDataSource();
-    const templateRepo = dataSource.getRepository(Template);
+    const templateRepo = dataSource.getRepository("Template");
 
     const templates = await templateRepo.find({
         order: {

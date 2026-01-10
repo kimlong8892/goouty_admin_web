@@ -6,7 +6,7 @@ export async function POST(req: Request) {
     try {
         const body = await req.json();
         const dataSource = await initializeDataSource();
-        const repo = dataSource.getRepository(Template);
+        const repo = dataSource.getRepository("Template");
 
         // Validate code uniqueness
         const existing = await repo.findOne({ where: { code: body.code } });
