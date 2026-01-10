@@ -1,8 +1,9 @@
-import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from "typeorm";
-import type { Trip } from "./Trip";
+import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, BaseEntity } from "typeorm";
+import { Trip } from "./Trip";
+import type { TripTemplate } from "@/entities/TripTemplate";
 
 @Entity({ name: "Province", schema: "public" })
-export class Province {
+export class Province extends BaseEntity {
     @PrimaryColumn({ type: "uuid" })
     id!: string;
 
@@ -27,6 +28,9 @@ export class Province {
     @UpdateDateColumn()
     updatedAt!: Date;
 
-    @OneToMany("Trip", (trip: Trip) => trip.province)
+    @OneToMany(() => Trip, (trip) => trip.province)
     trips!: Trip[];
+
+    @OneToMany("TripTemplate", (template: TripTemplate) => template.province)
+    tripTemplates!: TripTemplate[];
 }

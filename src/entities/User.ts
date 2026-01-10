@@ -1,10 +1,10 @@
-import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from "typeorm";
+import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, BaseEntity } from "typeorm";
 import type { Trip } from "./Trip";
 import type { Expense } from "./Expense";
 import type { TripMember } from "./TripMember";
 
 @Entity({ name: "User", schema: "public" })
-export class User {
+export class User extends BaseEntity {
     @PrimaryColumn({ type: "uuid" })
     id!: string;
 

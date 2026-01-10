@@ -19,17 +19,16 @@ export default async function Dashboard() {
   const session = await auth();
   const dataSource = await initializeDataSource();
 
-  const userRepo = dataSource.getRepository(User);
-  const tripRepo = dataSource.getRepository(Trip);
-  const expenseRepo = dataSource.getRepository(Expense);
-  const provinceRepo = dataSource.getRepository(Province);
+  const userRepo = dataSource.getRepository<User>("User");
+  const tripRepo = dataSource.getRepository<Trip>("Trip");
+  const expenseRepo = dataSource.getRepository<Expense>("Expense");
+  const provinceRepo = dataSource.getRepository<Province>("Province");
 
   // Fetch stats from public schema
   const [userCount, tripCount, totalExpenseResult, provinceCount] = await Promise.all([
     userRepo.count(),
     tripRepo.count(),
-    expenseRepo
-      .createQueryBuilder("expense")
+    expenseRepo.createQueryBuilder("expense")
       .select("SUM(expense.amount)", "sum")
       .getRawOne(),
     provinceRepo.count(),
