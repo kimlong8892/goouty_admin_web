@@ -157,6 +157,23 @@ jobs:
             exit 1
           fi
 
+      - name: Run Database Seed
+        run: |
+          echo "Running seed directly from runner..."
+          if [ -f .env.temp ]; then
+            # Load environment variables for the seed command
+            set -a
+            source .env.temp
+            set +a
+            
+            # Run the seed
+            npx prisma db seed
+          else
+            echo "Error: .env.temp not found. Cannot run seed."
+            exit 1
+          fi
+
+
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:

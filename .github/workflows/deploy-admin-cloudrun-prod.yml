@@ -113,6 +113,22 @@ jobs:
           fi
           echo "PORT=$PORT_VAL" >> $GITHUB_OUTPUT
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: |
+          if [ -f .env.temp ]; then
+            export $(grep -v '^#' .env.temp | xargs)
+          fi
+          npx prisma generate
+
       - name: Run Database Migration
         run: |
           echo "Running migration directly from runner..."
@@ -128,6 +144,23 @@ jobs:
             echo "Error: .env.temp not found. Cannot run migration."
             exit 1
           fi
+
+      - name: Run Database Seed
+        run: |
+          echo "Running seed directly from runner..."
+          if [ -f .env.temp ]; then
+            # Load environment variables for the seed command
+            set -a
+            source .env.temp
+            set +a
+            
+            # Run the seed
+            npx prisma db seed
+          else
+            echo "Error: .env.temp not found. Cannot run seed."
+            exit 1
+          fi
+
 
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
