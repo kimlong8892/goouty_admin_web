@@ -144,7 +144,8 @@ jobs:
           fi
 
           # Convert .env format to JSON format for gcloud using jq
-          grep -v '^#' .env.temp | grep -v '^$' | jq -R 'split("=") | select(length>=2) | {(.[0]): (.[1:] | join("="))}' | jq -s 'add' > env-vars.json
+          # Exclude PORT as it is a reserved name for Cloud Run Jobs
+          grep -v '^#' .env.temp | grep -v '^$' | grep -v '^PORT=' | jq -R 'split("=") | select(length>=2) | {(.[0]): (.[1:] | join("="))}' | jq -s 'add' > env-vars.json
 
           JOB_NAME="migrate-${{ env.SERVICE_NAME }}"
 
