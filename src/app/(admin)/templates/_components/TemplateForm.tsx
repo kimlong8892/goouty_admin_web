@@ -13,6 +13,44 @@ export default function TemplateForm({ initialData }: TemplateFormProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
+    const [emailBody, setEmailBody] = useState(initialData?.emailBody || "");
+
+    const [testEmailAddress, setTestEmailAddress] = useState("");
+    const [isSendingTest, setIsSendingTest] = useState(false);
+
+    const handleTestEmail = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!testEmailAddress) return;
+
+        setIsSendingTest(true);
+        try {
+            // Get current form values using FormData to ensure we send what's currently being edited (except controlled emailBody)
+            const form = document.querySelector('form') as HTMLFormElement; // Safe enough locally
+            const formData = new FormData(form);
+            const currentSubject = formData.get('emailSubject') as string || initialData?.emailSubject || "Test Subject";
+
+            const res = await fetch("/api/templates/test-email", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    to: testEmailAddress,
+                    subject: currentSubject,
+                    html: emailBody, // Use the controlled state
+                }),
+            });
+
+            if (!res.ok) {
+                const json = await res.json();
+                throw new Error(json.error || "Failed to send test email");
+            }
+
+            alert("Test email sent successfully!");
+        } catch (err: any) {
+            alert(err.message);
+        } finally {
+            setIsSendingTest(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -52,7 +90,7 @@ export default function TemplateForm({ initialData }: TemplateFormProps) {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="mx-auto max-w-4xl space-y-8">
+        <form onSubmit={handleSubmit} className="mx-auto max-w-full space-y-8">
             {/* Header */}
             <div>
                 <h1 className="text-2xl font-bold dark:text-white">
@@ -101,6 +139,27 @@ export default function TemplateForm({ initialData }: TemplateFormProps) {
                     />
                 </div>
 
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800">
+                    <h3 className="mb-2 text-sm font-bold text-gray-900 dark:text-white">Send Test Email</h3>
+                    <div className="flex gap-2">
+                        <input
+                            type="email"
+                            value={testEmailAddress}
+                            onChange={(e) => setTestEmailAddress(e.target.value)}
+                            placeholder="Enter email address"
+                            className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                        />
+                        <button
+                            type="button"
+                            onClick={handleTestEmail}
+                            disabled={isSendingTest || !testEmailAddress}
+                            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                        >
+                            {isSendingTest ? "..." : "Send"}
+                        </button>
+                    </div>
+                </div>
+
                 <div className="grid gap-6 md:grid-cols-2">
                     <div className="space-y-2">
                         <label className="text-sm font-bold text-gray-900 dark:text-white">Email Subject</label>
@@ -125,12 +184,23 @@ export default function TemplateForm({ initialData }: TemplateFormProps) {
 
                 <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-900 dark:text-white">Email Body</label>
-                    <textarea
-                        name="emailBody"
-                        defaultValue={initialData?.emailBody || ""}
-                        rows={6}
-                        className="w-full font-mono text-sm rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white"
-                    />
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <textarea
+                            name="emailBody"
+                            value={emailBody}
+                            onChange={(e) => setEmailBody(e.target.value)}
+                            rows={20}
+                            className="w-full font-mono text-sm rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white"
+                        />
+                        <div className="space-y-2">
+
+                            <label className="text-sm font-bold text-gray-500">Preview</label>
+                            <div
+                                className="h-full min-h-[400px] w-full overflow-y-auto rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                                dangerouslySetInnerHTML={{ __html: emailBody }}
+                            />
+                        </div>
+                    </div>
                 </div>
 
                 <div className="space-y-2">
@@ -144,6 +214,7 @@ export default function TemplateForm({ initialData }: TemplateFormProps) {
             </div>
 
             <div className="flex items-center justify-end gap-4">
+
                 <Link
                     href="/templates"
                     className="rounded-xl px-6 py-3 text-sm font-bold text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
@@ -159,5 +230,6 @@ export default function TemplateForm({ initialData }: TemplateFormProps) {
                 </button>
             </div>
         </form>
+
     );
 }

@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import { initializeDataSource } from "@/lib/typeorm";
 import { Template } from "@/entities/Template";
 import TemplateForm from "../_components/TemplateForm";
@@ -7,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function EditTemplatePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     const dataSource = await initializeDataSource();
-    const repo = dataSource.getRepository(Template);
+    const repo = dataSource.getRepository("Template");
     const template = await repo.findOne({ where: { id } });
 
     if (!template) {
