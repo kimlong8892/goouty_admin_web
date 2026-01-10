@@ -1,257 +1,207 @@
-"use client";
-
-import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { ILike } from "typeorm";
+import { initializeDataSource } from "@/lib/typeorm";
+import { TripTemplate } from "@/entities/TripTemplate";
+import TripTemplatesFilters from "./TripTemplatesFilters";
+import DeleteTemplateButton from "./DeleteTemplateButton";
 
-interface Province {
-    id: string;
-    name: string;
+export const dynamic = "force-dynamic";
+
+interface PageProps {
+    searchParams: Promise<{
+        page?: string;
+        search?: string;
+        isPublic?: string;
+    }>;
 }
 
-interface TripTemplate {
-    id: string;
-    title: string;
-    description?: string;
-    avatar?: string;
-    fee: number;
-    isPublic: boolean;
-    province?: Province;
-    createdAt: string;
-    days?: any[];
-}
+export default async function TripTemplatesPage(props: PageProps) {
+    const searchParams = await props.searchParams;
+    const page = parseInt(searchParams.page || "1");
+    const limit = 10;
+    const search = searchParams.search || "";
+    const isPublic = searchParams.isPublic;
 
-interface Pagination {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-}
+    const skip = (page - 1) * limit;
 
-export default function TripTemplatesPage() {
-    const [templates, setTemplates] = useState<TripTemplate[]>([]);
-    const [pagination, setPagination] = useState<Pagination>({
-        page: 1,
-        limit: 10,
-        total: 0,
-        totalPages: 0,
+    const dataSource = await initializeDataSource();
+    const tripTemplateRepo = dataSource.getRepository<TripTemplate>("TripTemplate");
+
+    const commonWhere: any = {};
+    if (isPublic !== undefined && isPublic !== "") {
+        commonWhere.isPublic = isPublic === "true";
+    }
+
+    let whereCondition = commonWhere;
+    if (search) {
+        whereCondition = [
+            { ...commonWhere, title: ILike(`%${search}%`) },
+            { ...commonWhere, description: ILike(`%${search}%`) }
+        ];
+    }
+
+    const [templates, total] = await tripTemplateRepo.findAndCount({
+        where: whereCondition,
+        relations: {
+            province: true,
+            days: true,
+        },
+        order: {
+            createdAt: "DESC",
+        },
+        skip,
+        take: limit,
     });
-    const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState("");
-    const [filterPublic, setFilterPublic] = useState<string>("");
 
-    const fetchTemplates = useCallback(async () => {
-        setLoading(true);
-        try {
-            const params = new URLSearchParams({
-                page: pagination.page.toString(),
-                limit: pagination.limit.toString(),
-            });
-
-            if (search) params.append("search", search);
-            if (filterPublic) params.append("isPublic", filterPublic);
-
-            const response = await fetch(`/api/trip-templates?${params}`);
-            const data = await response.json();
-
-            setTemplates(data.data || []);
-            setPagination(data.pagination || { page: 1, limit: 10, total: 0, totalPages: 0 });
-        } catch (error) {
-            console.error("Error fetching templates:", error);
-            setTemplates([]);
-        } finally {
-            setLoading(false);
-        }
-    }, [pagination.page, pagination.limit, search, filterPublic]);
-
-    useEffect(() => {
-        fetchTemplates();
-    }, [fetchTemplates]);
-
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this template?")) return;
-
-        try {
-            const response = await fetch(`/api/trip-templates/${id}`, {
-                method: "DELETE",
-            });
-
-            if (response.ok) {
-                fetchTemplates();
-            } else {
-                alert("Failed to delete template");
-            }
-        } catch (error) {
-            console.error("Error deleting template:", error);
-            alert("Failed to delete template");
-        }
-    };
+    const totalPages = Math.ceil(total / limit);
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* Header Section */}
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
+                    <h1 className="text-4xl font-black tracking-tight text-gray-900 dark:text-white sm:text-5xl">
                         Trip Templates
                     </h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Manage trip templates for users
+                    <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">
+                        Design and manage signature itineraries for your travelers.
                     </p>
                 </div>
                 <Link
                     href="/trip-templates/new"
-                    className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+                    className="group relative inline-flex items-center justify-center overflow-hidden rounded-2xl bg-brand-600 px-8 py-4 font-bold text-white shadow-[0_20px_40px_-15px_rgba(54,65,245,0.3)] transition-all hover:scale-[1.02] hover:shadow-brand-500/40 active:scale-95"
                 >
-                    Create Template
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 transition-transform duration-500 group-hover:translate-x-full -translate-x-full" />
+                    <svg className="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Create New Template
                 </Link>
             </div>
 
-            {/* Filters */}
-            <div className="flex gap-4">
-                <input
-                    type="text"
-                    placeholder="Search templates..."
-                    value={search}
-                    onChange={(e) => {
-                        setSearch(e.target.value);
-                        setPagination((prev) => ({ ...prev, page: 1 }));
-                    }}
-                    className="flex-1 rounded-lg border border-gray-300 px-4 py-2 dark:border-gray-600 dark:bg-gray-800"
-                />
-                <select
-                    value={filterPublic}
-                    onChange={(e) => {
-                        setFilterPublic(e.target.value);
-                        setPagination((prev) => ({ ...prev, page: 1 }));
-                    }}
-                    className="rounded-lg border border-gray-300 px-4 py-2 dark:border-gray-600 dark:bg-gray-800"
-                >
-                    <option value="">All Status</option>
-                    <option value="true">Public</option>
-                    <option value="false">Private</option>
-                </select>
+            {/* Filters Section */}
+            <div className="rounded-3xl border border-gray-200 bg-white/50 p-2 backdrop-blur-xl dark:border-gray-700/50 dark:bg-gray-800/50">
+                <TripTemplatesFilters initialSearch={search} initialIsPublic={isPublic} />
             </div>
 
-            {/* Templates Table */}
-            {loading ? (
-                <div className="flex h-64 items-center justify-center">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-                </div>
-            ) : templates.length === 0 ? (
-                <div className="flex h-64 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
-                    <div className="text-center">
-                        <p className="text-gray-500 dark:text-gray-400">No templates found</p>
-                        <Link
-                            href="/trip-templates/new"
-                            className="mt-2 inline-block text-sm text-primary hover:underline"
-                        >
-                            Create your first template
-                        </Link>
+            {/* Main Content: Premium Data Table */}
+            {templates.length === 0 ? (
+                <div className="group relative flex flex-col items-center justify-center overflow-hidden rounded-[2.5rem] border-2 border-dashed border-gray-200 bg-white p-20 text-center transition-all hover:border-primary/50 dark:border-gray-800 dark:bg-gray-900">
+                    <div className="relative mb-6">
+                        <div className="absolute -inset-4 rounded-full bg-primary/5 blur-2xl group-hover:bg-primary/10 transition-all duration-500" />
+                        <div className="relative rounded-3xl bg-gray-50 p-8 dark:bg-gray-800">
+                            <svg className="h-12 w-12 text-gray-400 group-hover:text-primary transition-colors duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                        </div>
                     </div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">No results found</h3>
+                    <p className="mt-2 max-w-sm text-gray-500">We couldn't find any templates matching your filters. Try adjusting your search or create a new one.</p>
+                    <Link
+                        href="/trip-templates/new"
+                        className="mt-8 rounded-xl bg-gray-900 px-6 py-3 text-sm font-bold text-white transition-all hover:bg-gray-800 dark:bg-white dark:text-black"
+                    >
+                        Create Your First Template
+                    </Link>
                 </div>
             ) : (
-                <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <div className="overflow-hidden rounded-[2rem] border border-gray-100 bg-white shadow-xl shadow-gray-200/50 dark:border-gray-800 dark:bg-gray-900 dark:shadow-none">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm text-gray-500 dark:text-gray-400">
-                            <thead className="bg-gray-50 text-xs uppercase text-gray-700 dark:bg-gray-700 dark:text-gray-400">
-                                <tr>
-                                    <th scope="col" className="px-6 py-3">Template</th>
-                                    <th scope="col" className="px-6 py-3">Province</th>
-                                    <th scope="col" className="px-6 py-3">Stats</th>
-                                    <th scope="col" className="px-6 py-3">Status</th>
-                                    <th scope="col" className="px-6 py-3">Created</th>
-                                    <th scope="col" className="px-6 py-3 text-right">Actions</th>
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="border-b border-gray-50 bg-gray-50/50 dark:border-gray-800 dark:bg-gray-800/50">
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Itinerary</th>
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Details</th>
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Pricing</th>
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Status</th>
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                                 {templates.map((template) => (
-                                    <tr key={template.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <tr
+                                        key={template.id}
+                                        className="group transition-colors hover:bg-primary/[0.02] dark:hover:bg-primary/[0.01]"
+                                    >
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-4">
-                                                <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700">
-                                                    {template.avatar && (template.avatar.startsWith('http://') || template.avatar.startsWith('https://')) ? (
+                                                <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-xl border border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-800">
+                                                    {template.avatar ? (
                                                         <Image
                                                             src={template.avatar}
                                                             alt={template.title}
                                                             fill
-                                                            className="object-cover"
+                                                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                                                            unoptimized
                                                         />
                                                     ) : (
-                                                        <div className="flex h-full items-center justify-center">
-                                                            <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        <div className="flex h-full w-full items-center justify-center">
+                                                            <svg className="h-6 w-6 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                                             </svg>
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div>
-                                                    <div className="font-medium text-gray-900 dark:text-white">
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className="truncate text-base font-bold text-gray-900 group-hover:text-primary dark:text-white">
                                                         {template.title}
-                                                    </div>
-                                                    {template.description && (
-                                                        <div className="max-w-xs truncate text-xs text-gray-500">
-                                                            {template.description}
-                                                        </div>
-                                                    )}
+                                                    </span>
+                                                    <span className="line-clamp-1 text-xs text-gray-400 mt-0.5">
+                                                        {template.description || "No description"}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            {template.province ? (
-                                                <span className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                                                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-2">
+                                                    <svg className="h-3 w-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                                     </svg>
-                                                    {template.province.name}
-                                                </span>
-                                            ) : (
-                                                <span className="text-gray-400">-</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col gap-1">
-                                                <span className="font-medium text-gray-900 dark:text-white">
-                                                    ${Number(template.fee).toLocaleString()}
-                                                </span>
-                                                <span className="text-xs text-gray-500">
-                                                    {template.days?.length || 0} days
-                                                </span>
+                                                    <span className="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                                                        {template.province?.name || "Global"}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <svg className="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    <span className="text-[10px] font-bold text-gray-400">
+                                                        {template.days?.length || 0} Journey Days
+                                                    </span>
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span
-                                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${template.isPublic
-                                                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                                                    : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
-                                                    }`}
-                                            >
-                                                {template.isPublic ? "Public" : "Private"}
-                                            </span>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-black text-gray-900 dark:text-white">
+                                                    ${Number(template.fee).toLocaleString()}
+                                                </span>
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mt-0.5">Platform Fee</span>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="text-gray-500 dark:text-gray-400">
-                                                {new Date(template.createdAt).toLocaleDateString()}
+                                            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ring-1 ring-inset ${template.isPublic
+                                                ? "bg-emerald-50 text-emerald-600 ring-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
+                                                : "bg-gray-50 text-gray-500 ring-gray-500/20 dark:bg-gray-500/10 dark:text-gray-400"
+                                                }`}>
+                                                <span className={`h-1 w-1 rounded-full ${template.isPublic ? "bg-emerald-500" : "bg-gray-500"}`} />
+                                                {template.isPublic ? "Public" : "Draft"}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <div className="relative z-10 flex items-center justify-end gap-3">
+                                            <div className="flex items-center justify-end gap-2">
                                                 <Link
                                                     href={`/trip-templates/${template.id}`}
-                                                    className="rounded px-2 py-1 font-medium text-blue-600 hover:bg-blue-50 hover:underline dark:text-blue-400 dark:hover:bg-blue-900/20"
+                                                    className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-50 text-gray-600 transition-all hover:bg-primary hover:text-white dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-primary dark:hover:text-white"
+                                                    title="Edit Template"
                                                 >
-                                                    Edit
+                                                    <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                    </svg>
                                                 </Link>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDelete(template.id);
-                                                    }}
-                                                    className="rounded px-2 py-1 font-medium text-red-600 hover:bg-red-50 hover:underline dark:text-red-400 dark:hover:bg-red-900/20"
-                                                >
-                                                    Delete
-                                                </button>
+                                                <DeleteTemplateButton id={template.id} />
                                             </div>
                                         </td>
                                     </tr>
@@ -262,26 +212,37 @@ export default function TripTemplatesPage() {
                 </div>
             )}
 
-            {/* Pagination */}
-            {pagination.totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2">
-                    <button
-                        onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
-                        disabled={pagination.page === 1}
-                        className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium disabled:opacity-50 dark:border-gray-600"
-                    >
-                        Previous
-                    </button>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Page {pagination.page} of {pagination.totalPages}
-                    </span>
-                    <button
-                        onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
-                        disabled={pagination.page === pagination.totalPages}
-                        className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium disabled:opacity-50 dark:border-gray-600"
-                    >
-                        Next
-                    </button>
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex flex-col items-center justify-between gap-4 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 md:flex-row">
+                    <div className="text-sm font-medium text-gray-500">
+                        Showing <span className="font-bold text-gray-900 dark:text-white">{(page - 1) * limit + 1}-{Math.min(page * limit, total)}</span> of <span className="font-bold text-gray-900 dark:text-white">{total}</span> templates
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Link
+                            href={{
+                                query: { ...searchParams, page: (page - 1).toString() },
+                            }}
+                            className={`flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-xs font-bold text-gray-700 transition-all hover:bg-gray-50 disabled:opacity-50 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 ${page === 1 ? "pointer-events-none opacity-50" : ""}`}
+                        >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+                            Prev
+                        </Link>
+
+                        <div className="flex h-10 min-w-10 items-center justify-center rounded-xl bg-primary/5 px-4 text-sm font-black text-primary dark:bg-primary/10">
+                            {page} <span className="mx-1 text-gray-400 font-normal">/</span> {totalPages}
+                        </div>
+
+                        <Link
+                            href={{
+                                query: { ...searchParams, page: (page + 1).toString() },
+                            }}
+                            className={`flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-xs font-bold text-gray-700 transition-all hover:bg-gray-50 disabled:opacity-50 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 ${page === totalPages ? "pointer-events-none opacity-50" : ""}`}
+                        >
+                            Next
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+                        </Link>
+                    </div>
                 </div>
             )}
         </div>

@@ -115,7 +115,7 @@ export async function PUT(
         // Update basic fields
         template.title = body.title;
         template.description = body.description;
-        template.provinceId = body.provinceId;
+        template.provinceId = body.provinceId || null;
         template.isPublic = body.isPublic;
         template.avatar = body.avatar;
         template.fee = body.fee;

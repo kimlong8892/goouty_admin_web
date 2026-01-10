@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
             id: crypto.randomUUID(),
             title: body.title,
             description: body.description,
-            provinceId: body.provinceId,
+            provinceId: body.provinceId || null,
             isPublic: body.isPublic || false,
             avatar: body.avatar,
             fee: body.fee || 0,
