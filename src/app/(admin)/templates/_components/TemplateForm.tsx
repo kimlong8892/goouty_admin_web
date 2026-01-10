@@ -114,9 +114,10 @@ export default function TemplateForm({ initialData }: TemplateFormProps) {
                         <input
                             name="code"
                             defaultValue={initialData?.code}
-                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white"
+                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-800 dark:bg-gray-800 dark:text-white"
                             placeholder="e.g. WELCOME_EMAIL"
                             required
+                            disabled={!!initialData}
                         />
                     </div>
                     <div className="space-y-2">
