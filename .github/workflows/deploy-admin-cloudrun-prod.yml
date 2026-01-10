@@ -139,7 +139,11 @@ jobs:
           fi
 
           echo "Executing migration..."
-          gcloud run jobs execute $JOB_NAME --region ${{ env.REGION }} --wait
+          if ! gcloud run jobs execute $JOB_NAME --region ${{ env.REGION }} --wait; then
+            echo "Migration failed. Fetching logs..."
+            gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=$JOB_NAME AND resource.labels.location=${{ env.REGION }}" --limit=100
+            exit 1
+          fi
 
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
@@ -149,3 +153,9 @@ jobs:
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
           env_vars: ${{ steps.env-vars.outputs.ENV_VARS }}
           flags: '--port ${{ steps.env-vars.outputs.PORT }} --allow-unauthenticated'
+
+      - name: Show Cloud Run Service Logs on Failure
+        if: failure()
+        run: |
+          echo "Deployment failed. Fetching latest service logs..."
+          gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=${{ env.SERVICE_NAME }} AND resource.labels.location=${{ env.REGION }}" --limit=100
