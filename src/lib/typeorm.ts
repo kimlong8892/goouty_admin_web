@@ -9,6 +9,7 @@ import { TripMember } from "../entities/TripMember";
 import { TripTemplate } from "../entities/TripTemplate";
 import { TripTemplateDay } from "../entities/TripTemplateDay";
 import { TripTemplateActivity } from "../entities/TripTemplateActivity";
+import { Template } from "@/entities/Template";
 
 const globalForTypeORM = global as unknown as { appDataSource: DataSource };
 
@@ -25,7 +26,8 @@ export const AppDataSource = globalForTypeORM.appDataSource || new DataSource({
         TripMember,
         TripTemplate,
         TripTemplateDay,
-        TripTemplateActivity
+        TripTemplateActivity,
+        Template
     ],
     migrations: [],
     subscribers: [],

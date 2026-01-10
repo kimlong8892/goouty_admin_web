@@ -12,7 +12,7 @@ export default function ExcelActions() {
     const handleDownloadSample = () => {
         try {
             const excelBuffer = generateSampleExcel();
-            const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const blob = new Blob([excelBuffer as any], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
