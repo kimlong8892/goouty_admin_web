@@ -51,6 +51,11 @@ jobs:
         env:
           ALL_SECRETS: ${{ toJson(secrets) }}
           ALL_VARS: ${{ toJson(vars) }}
+          # Explicitly reference secrets used in migration to ensure they are available in context
+          DB_URL: ${{ secrets.DATABASE_URL }}
+          DB_PASS: ${{ secrets.DB_PASSWORD }}
+          DB_USER: ${{ secrets.DB_USERNAME }}
+          DB_NAME: ${{ secrets.DB_DATABASE }}
         run: |
           echo "Generating environment variables..."
 
@@ -98,6 +103,9 @@ jobs:
             echo "EOF"
           } >> $GITHUB_OUTPUT
           
+          echo "Generated environment variables (keys only):"
+          cut -d= -f1 .env.temp
+          
           # Extract PORT for Cloud Run flag
           PORT_VAL=$(grep "^PORT=" .env.temp | cut -d= -f2-)
           if [ -z "$PORT_VAL" ]; then
@@ -140,9 +148,13 @@ jobs:
           fi
 
           echo "Executing migration..."
-          if ! gcloud run jobs execute $JOB_NAME --region ${{ env.REGION }} --wait; then
-            echo "Migration failed. Fetching logs..."
-            gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=$JOB_NAME AND resource.labels.location=${{ env.REGION }}" --limit=100
+          EXECUTION_NAME=$(gcloud run jobs execute $JOB_NAME --region ${{ env.REGION }} --format='value(metadata.name)')
+          echo "Execution started: $EXECUTION_NAME"
+          
+          if ! gcloud run executions wait $EXECUTION_NAME --region ${{ env.REGION }}; then
+            echo "Migration failed. Fetching container logs for execution: $EXECUTION_NAME"
+            # Get the logs from the execution. We use a filter that targets the execution name specifically.
+            gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=$JOB_NAME AND labels.\"run.googleapis.com/execution_name\"=$EXECUTION_NAME" --limit=200 --format="value(textPayload,jsonPayload.message)"
             exit 1
           fi
 
