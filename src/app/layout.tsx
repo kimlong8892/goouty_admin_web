@@ -5,6 +5,8 @@ import { SidebarProvider } from '@/context/SidebarContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { Providers } from '@/components/Providers';
 
+import { Toaster } from 'react-hot-toast';
+
 const outfit = Outfit({
   subsets: ["latin"],
 });
@@ -19,6 +21,7 @@ export default function RootLayout({
       <body className="font-sans">
         <Providers>
           <ThemeProvider>
+            <Toaster position="top-center" reverseOrder={false} />
             <SidebarProvider>{children}</SidebarProvider>
           </ThemeProvider>
         </Providers>

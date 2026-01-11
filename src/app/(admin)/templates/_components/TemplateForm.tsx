@@ -60,7 +60,7 @@ export default function TemplateForm({ initialData }: TemplateFormProps) {
         const data = Object.fromEntries(formData.entries());
 
         // Basic validation
-        if (!data.code) {
+        if (!initialData && !data.code) {
             setError("Code is required");
             return;
         }
