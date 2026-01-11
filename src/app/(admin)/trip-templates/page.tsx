@@ -7,6 +7,8 @@ import TripTemplatesFilters from "./TripTemplatesFilters";
 import DeleteTemplateButton from "./DeleteTemplateButton";
 import ExcelActions from "./ExcelActions";
 
+import CreateFromApiButton from "./CreateFromApiButton";
+
 export const dynamic = "force-dynamic";
 
 export const metadata = {
@@ -65,26 +67,27 @@ export default async function TripTemplatesPage(props: PageProps) {
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Header Section */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-start md:gap-12">
                 <div>
-                    <h1 className="text-4xl font-black tracking-tight text-gray-900 dark:text-white sm:text-5xl">
+                    <h1 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white sm:text-4xl">
                         Trip Templates
                     </h1>
-                    <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">
-                        Design and manage signature itineraries for your travelers.
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Design and manage signature itineraries.
                     </p>
                 </div>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="flex flex-wrap items-center gap-2">
                     <ExcelActions />
+                    <CreateFromApiButton n8nUrl={process.env.N8N_URL_CREATE_TRIP_TEMPLATE || ""} />
                     <Link
                         href="/trip-templates/new"
-                        className="group relative inline-flex items-center justify-center overflow-hidden rounded-2xl bg-brand-600 px-8 py-4 font-bold text-white shadow-[0_20px_40px_-15px_rgba(54,65,245,0.3)] transition-all hover:scale-[1.02] hover:shadow-brand-500/40 active:scale-95"
+                        className="group relative inline-flex items-center justify-center overflow-hidden rounded-2xl bg-brand-600 px-6 py-3 text-sm font-bold text-white shadow-[0_20px_40px_-15px_rgba(54,65,245,0.3)] transition-all hover:scale-[1.02] hover:shadow-brand-500/40 active:scale-95"
                     >
                         <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 transition-transform duration-500 group-hover:translate-x-full -translate-x-full" />
-                        <svg className="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
                         </svg>
-                        Create New Template
+                        Create New
                     </Link>
                 </div>
             </div>
@@ -117,13 +120,13 @@ export default async function TripTemplatesPage(props: PageProps) {
                         </Link>
                     </div>
                 ) : (
-                    <div className="overflow-hidden rounded-[2rem] border border-gray-100 bg-white shadow-xl shadow-gray-200/50 dark:border-gray-800 dark:bg-gray-900 dark:shadow-none">
+                    <div className="max-w-full overflow-hidden rounded-[2rem] border border-gray-100 bg-white shadow-xl shadow-gray-200/50 dark:border-gray-800 dark:bg-gray-900 dark:shadow-none">
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left">
+                            <table className="w-full text-left min-w-[800px]">
                                 <thead>
                                     <tr className="border-b border-gray-50 bg-gray-50/50 dark:border-gray-800 dark:bg-gray-800/50">
-                                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Itinerary</th>
-                                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Details</th>
+                                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 min-w-[300px]">Itinerary</th>
+                                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 min-w-[150px]">Details</th>
                                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Pricing</th>
                                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Status</th>
                                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 text-right">Actions</th>
@@ -155,7 +158,7 @@ export default async function TripTemplatesPage(props: PageProps) {
                                                         )}
                                                     </div>
                                                     <div className="flex flex-col min-w-0">
-                                                        <span className="truncate text-base font-bold text-gray-900 group-hover:text-primary dark:text-white">
+                                                        <span className="line-clamp-2 text-base font-bold text-gray-900 group-hover:text-primary dark:text-white">
                                                             {template.title}
                                                         </span>
                                                         <span className="line-clamp-1 text-xs text-gray-400 mt-0.5">
