@@ -35,10 +35,6 @@ export default function CreateFromApiButton({ n8nUrl }: Props) {
                 toast.success(data.message || "Template creation started successfully!", { id: toastId });
                 setIsOpen(false);
                 setUrl("");
-                // Delay reload a bit so user can see the toast
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
             } else {
                 toast.error(data.details || data.message || "Failed to create template. Please try again.", { id: toastId });
             }
