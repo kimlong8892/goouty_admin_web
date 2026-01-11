@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { generateSampleExcel, parseExcelRows, groupRowsToTemplates } from "@/lib/excel-utils";
+import { toast } from "react-hot-toast";
 
 export default function ExcelActions() {
     const router = useRouter();
@@ -21,9 +22,10 @@ export default function ExcelActions() {
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
+            toast.success("Sample file downloaded!");
         } catch (error) {
             console.error("Failed to generate sample:", error);
-            alert("Failed to download sample file");
+            toast.error("Failed to download sample file");
         }
     };
 
@@ -35,13 +37,14 @@ export default function ExcelActions() {
         e.target.value = "";
 
         setIsImporting(true);
+        const toastId = toast.loading("Processing Excel file...");
         try {
             const buffer = await file.arrayBuffer();
             const rows = parseExcelRows(buffer);
             const templates = groupRowsToTemplates(rows);
 
             if (templates.length === 0) {
-                alert("No templates found in file.");
+                toast.error("No templates found in file.", { id: toastId });
                 setIsImporting(false);
                 return;
             }
@@ -59,13 +62,15 @@ export default function ExcelActions() {
                 }
 
                 const result = await response.json();
-                alert(result.message);
+                toast.success(result.message, { id: toastId });
                 router.refresh();
+            } else {
+                toast.dismiss(toastId);
             }
 
         } catch (error) {
             console.error("Import error:", error);
-            alert(`Error importing file: ${error instanceof Error ? error.message : "Unknown error"}`);
+            toast.error(`Error importing file: ${error instanceof Error ? error.message : "Unknown error"}`, { id: toastId });
         } finally {
             setIsImporting(false);
         }

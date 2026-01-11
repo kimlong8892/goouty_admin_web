@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Modal } from "@/components/ui/modal";
+import { toast } from "react-hot-toast";
 
 interface Props {
     n8nUrl: string;
@@ -16,28 +17,34 @@ export default function CreateFromApiButton({ n8nUrl }: Props) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!url) {
-            alert("Please enter a URL");
+            toast.error("Please enter a URL");
             return;
         }
 
         setLoading(true);
+        const toastId = toast.loading("Sending request to n8n...");
         try {
             const apiUrl = `${n8nUrl}?platfrom=${platform}&url=${encodeURIComponent(url)}`;
             const response = await fetch(apiUrl, {
                 method: 'GET',
             });
 
+            const data = await response.json().catch(() => ({}));
+
             if (response.ok) {
-                alert("Template creation started successfully!");
+                toast.success(data.message || "Template creation started successfully!", { id: toastId });
                 setIsOpen(false);
                 setUrl("");
-                window.location.reload();
+                // Delay reload a bit so user can see the toast
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
             } else {
-                alert("Failed to create template. Please try again.");
+                toast.error(data.details || data.message || "Failed to create template. Please try again.", { id: toastId });
             }
         } catch (error) {
             console.error("Error creating template:", error);
-            alert("An error occurred. Please try again.");
+            toast.error("An error occurred. Please try again.", { id: toastId });
         } finally {
             setLoading(false);
         }
