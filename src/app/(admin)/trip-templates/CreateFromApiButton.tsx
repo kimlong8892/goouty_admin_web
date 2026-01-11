@@ -24,7 +24,7 @@ export default function CreateFromApiButton({ n8nUrl }: Props) {
         setLoading(true);
         const toastId = toast.loading("Sending request to n8n...");
         try {
-            const apiUrl = `${n8nUrl}?platfrom=${platform}&url=${encodeURIComponent(url)}`;
+            const apiUrl = `${n8nUrl}?platform=${platform}&url=${encodeURIComponent(url)}`;
             const response = await fetch(apiUrl, {
                 method: 'GET',
             });
@@ -35,6 +35,8 @@ export default function CreateFromApiButton({ n8nUrl }: Props) {
                 toast.success(data.message || "Template creation started successfully!", { id: toastId });
                 setIsOpen(false);
                 setUrl("");
+                alert(data.message || "Template creation started successfully!");
+                window.location.reload();
             } else {
                 toast.error(data.details || data.message || "Failed to create template. Please try again.", { id: toastId });
             }
