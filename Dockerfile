@@ -1,38 +1,52 @@
-FROM php:8.4-fpm-alpine
+FROM node:20-alpine AS base
+RUN apk add --no-cache openssl libssl3 libc6-compat
 
-WORKDIR /var/www
+FROM base AS deps
+RUN apk add --no-cache libc6-compat openssl libssl3
+WORKDIR /app
 
-RUN apk update && apk add --no-cache \
-    build-base \
-    libpng-dev \
-    libzip-dev \
-    zip \
-    unzip \
-    git \
-    curl \
-    oniguruma-dev \
-    libxml2-dev \
-    postgresql-dev
+COPY package.json package-lock.json* ./
+RUN npm ci
 
-RUN docker-php-ext-install pdo_mysql pdo_pgsql pgsql mbstring exif pcntl bcmath gd zip
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npx prisma generate
+RUN npm run build
 
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+FROM base AS runner
+WORKDIR /app
 
-WORKDIR /var/www
+ENV NODE_ENV=production
 
-# Copy composer files first for caching
-COPY composer.json composer.lock ./
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
-# Install dependencies
-RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
+# Copy standalone output
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 
-# Copy the rest of the application
-COPY . /var/www
+# Copy static files
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Finish composer setup
-RUN composer dump-autoload --optimize
+# Copy public folder
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
-RUN chown -R www-data:www-data /var/www
+# Copy prisma files for migrations
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 
-EXPOSE 9000
-CMD ["php-fpm"]
+USER root
+RUN npm install -g prisma
+USER nextjs
+
+USER nextjs
+
+EXPOSE 3000
+
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Verify server.js exists and start the application
+CMD ["node", "server.js"]
