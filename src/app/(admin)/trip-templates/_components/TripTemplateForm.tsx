@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ImageUpload from "@/components/ImageUpload";
+import ProvinceSelect from "./province-select";
 
 interface Province {
     id: string;
@@ -138,20 +139,29 @@ export default function TripTemplateForm({ initialData, id, provinces, returnPar
     };
 
     const addDay = () => {
+        const newId = crypto.randomUUID();
         setForm((prev) => {
             const newDays = [
                 ...prev.days,
                 {
-                    id: crypto.randomUUID(),
+                    id: newId,
                     title: `Day ${prev.days.length + 1}`,
                     description: "",
                     dayOrder: prev.days.length + 1,
                     activities: [],
                 },
             ];
-            setExpandedDays(prev => new Set([...prev, newDays.length - 1]));
+            setExpandedDays((prev) => new Set([...prev, newDays.length - 1]));
             return { ...prev, days: newDays };
         });
+
+        // Scroll to the new day after it's rendered
+        setTimeout(() => {
+            const element = document.getElementById(newId);
+            if (element) {
+                element.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+        }, 100);
     };
 
     const removeDay = (index: number) => {
@@ -357,18 +367,12 @@ export default function TripTemplateForm({ initialData, id, provinces, returnPar
                                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">Tỉnh thành</label>
-                                            <select
+                                            <ProvinceSelect
+                                                provinces={provinces}
                                                 value={form.provinceId}
-                                                onChange={(e) => setForm({ ...form, provinceId: e.target.value })}
-                                                className="w-full rounded-2xl border-gray-100 bg-gray-50/50 px-4 py-3.5 text-sm font-bold text-gray-900 transition-all focus:bg-white focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white appearance-none cursor-pointer"
-                                            >
-                                                <option value="">Chọn Điểm đến</option>
-                                                {provinces.map((province) => (
-                                                    <option key={province.id} value={province.id}>
-                                                        {province.name}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                                onChange={(val) => setForm({ ...form, provinceId: val })}
+                                                disabled={loading}
+                                            />
                                         </div>
 
                                         <div className="space-y-2">
@@ -429,6 +433,7 @@ export default function TripTemplateForm({ initialData, id, provinces, returnPar
                                 {form.days.map((day, dayIndex) => (
                                     <div
                                         key={day.id}
+                                        id={day.id}
                                         className="group/day relative overflow-hidden rounded-[2.5rem] border border-gray-100 bg-white transition-all hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5 dark:border-gray-800 dark:bg-gray-900"
                                     >
                                         {/* Day Header */}
