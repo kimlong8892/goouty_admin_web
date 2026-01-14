@@ -42,9 +42,10 @@ interface TripTemplateFormProps {
     initialData?: TemplateForm;
     id?: string;
     provinces: Province[];
+    returnParams?: { [key: string]: string | string[] | undefined };
 }
 
-export default function TripTemplateForm({ initialData, id, provinces }: TripTemplateFormProps) {
+export default function TripTemplateForm({ initialData, id, provinces, returnParams }: TripTemplateFormProps) {
     const router = useRouter();
     const isEdit = !!id;
 
@@ -109,7 +110,21 @@ export default function TripTemplateForm({ initialData, id, provinces }: TripTem
             });
 
             if (response.ok) {
-                router.push("/trip-templates");
+                const params = new URLSearchParams();
+                if (returnParams) {
+                    Object.entries(returnParams).forEach(([key, value]) => {
+                        if (value !== undefined) {
+                            if (Array.isArray(value)) {
+                                value.forEach(v => params.append(key, v));
+                            } else {
+                                params.set(key, value);
+                            }
+                        }
+                    });
+                }
+                if (id) params.set("lastId", id);
+                const queryString = params.toString();
+                router.push(queryString ? `/trip-templates?${queryString}` : "/trip-templates");
                 router.refresh();
             } else {
                 alert("Không thể lưu lịch trình");
@@ -244,7 +259,23 @@ export default function TripTemplateForm({ initialData, id, provinces }: TripTem
                     <div className="flex items-center gap-4">
                         <button
                             type="button"
-                            onClick={() => router.back()}
+                            onClick={() => {
+                                const params = new URLSearchParams();
+                                if (returnParams) {
+                                    Object.entries(returnParams).forEach(([key, value]) => {
+                                        if (value !== undefined) {
+                                            if (Array.isArray(value)) {
+                                                value.forEach(v => params.append(key, v));
+                                            } else {
+                                                params.set(key, value);
+                                            }
+                                        }
+                                    });
+                                }
+                                if (id) params.set("lastId", id);
+                                const queryString = params.toString();
+                                router.push(queryString ? `/trip-templates?${queryString}` : "/trip-templates");
+                            }}
                             className="rounded-2xl border border-gray-200 bg-white px-6 py-3.5 text-sm font-bold text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-400 dark:hover:bg-gray-700 active:scale-95"
                         >
                             Hủy Thay đổi

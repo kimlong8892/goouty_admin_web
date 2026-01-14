@@ -7,9 +7,10 @@ import { Template } from "@/entities/Template";
 
 interface TemplateFormProps {
     initialData?: Template | null;
+    returnParams?: { [key: string]: string | string[] | undefined };
 }
 
-export default function TemplateForm({ initialData }: TemplateFormProps) {
+export default function TemplateForm({ initialData, returnParams }: TemplateFormProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
@@ -81,8 +82,23 @@ export default function TemplateForm({ initialData }: TemplateFormProps) {
                     throw new Error(json.error || "Something went wrong");
                 }
 
+                const params = new URLSearchParams();
+                if (returnParams) {
+                    Object.entries(returnParams).forEach(([key, value]) => {
+                        if (value !== undefined) {
+                            if (Array.isArray(value)) {
+                                value.forEach(v => params.append(key, v));
+                            } else {
+                                params.set(key, value);
+                            }
+                        }
+                    });
+                }
+                if (initialData?.id) params.set("lastId", initialData.id);
+                const queryString = params.toString();
+
                 router.refresh();
-                router.push("/templates");
+                router.push(queryString ? `/templates?${queryString}` : "/templates");
             } catch (err: any) {
                 setError(err.message);
             }
@@ -216,12 +232,29 @@ export default function TemplateForm({ initialData }: TemplateFormProps) {
 
             <div className="flex items-center justify-end gap-4">
 
-                <Link
-                    href="/templates"
+                <button
+                    type="button"
+                    onClick={() => {
+                        const params = new URLSearchParams();
+                        if (returnParams) {
+                            Object.entries(returnParams).forEach(([key, value]) => {
+                                if (value !== undefined) {
+                                    if (Array.isArray(value)) {
+                                        value.forEach(v => params.append(key, v));
+                                    } else {
+                                        params.set(key, value);
+                                    }
+                                }
+                            });
+                        }
+                        if (initialData?.id) params.set("lastId", initialData.id);
+                        const queryString = params.toString();
+                        router.push(queryString ? `/templates?${queryString}` : "/templates");
+                    }}
                     className="rounded-xl px-6 py-3 text-sm font-bold text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
                 >
                     Cancel
-                </Link>
+                </button>
                 <button
                     type="submit"
                     disabled={isPending}

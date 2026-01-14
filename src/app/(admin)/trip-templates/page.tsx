@@ -6,8 +6,8 @@ import { TripTemplate } from "@/entities/TripTemplate";
 import TripTemplatesFilters from "./TripTemplatesFilters";
 import DeleteTemplateButton from "./DeleteTemplateButton";
 import ExcelActions from "./ExcelActions";
-
 import CreateFromApiButton from "./CreateFromApiButton";
+import ScrollToHighlight from "@/components/common/ScrollToHighlight";
 
 export const dynamic = "force-dynamic";
 
@@ -80,7 +80,10 @@ export default async function TripTemplatesPage(props: PageProps) {
                     <ExcelActions />
                     <CreateFromApiButton n8nUrl={process.env.N8N_URL_CREATE_TRIP_TEMPLATE || ""} />
                     <Link
-                        href="/trip-templates/new"
+                        href={{
+                            pathname: "/trip-templates/new",
+                            query: searchParams,
+                        }}
                         className="group relative inline-flex items-center justify-center overflow-hidden rounded-2xl bg-brand-600 px-6 py-3 text-sm font-bold text-white shadow-[0_20px_40px_-15px_rgba(54,65,245,0.3)] transition-all hover:scale-[1.02] hover:shadow-brand-500/40 active:scale-95"
                     >
                         <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 transition-transform duration-500 group-hover:translate-x-full -translate-x-full" />
@@ -97,6 +100,8 @@ export default async function TripTemplatesPage(props: PageProps) {
             <div className="rounded-3xl border border-gray-200 bg-white/50 p-2 backdrop-blur-xl dark:border-gray-700/50 dark:bg-gray-800/50">
                 <TripTemplatesFilters initialSearch={search} initialIsPublic={isPublic} />
             </div>
+
+            <ScrollToHighlight />
 
             {/* Main Content: Premium Data Table */}
             {
@@ -136,6 +141,7 @@ export default async function TripTemplatesPage(props: PageProps) {
                                     {templates.map((template) => (
                                         <tr
                                             key={template.id}
+                                            id={`template-${template.id}`}
                                             className="group transition-colors hover:bg-primary/[0.02] dark:hover:bg-primary/[0.01]"
                                         >
                                             <td className="px-6 py-4">
@@ -207,7 +213,10 @@ export default async function TripTemplatesPage(props: PageProps) {
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <Link
-                                                        href={`/trip-templates/${template.id}`}
+                                                        href={{
+                                                            pathname: `/trip-templates/${template.id}`,
+                                                            query: searchParams,
+                                                        }}
                                                         className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-50 text-gray-600 transition-all hover:bg-primary hover:text-white dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-primary dark:hover:text-white"
                                                         title="Edit Template"
                                                     >

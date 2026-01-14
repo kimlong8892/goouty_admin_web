@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 interface PageProps {
     params: Promise<{ id: string }>;
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export async function generateMetadata(props: PageProps): Promise<Metadata> {
@@ -26,6 +27,7 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 
 export default async function TripTemplateFormPage(props: PageProps) {
     const params = await props.params;
+    const searchParams = await props.searchParams;
     const isEdit = params.id !== "new";
     const dataSource = await initializeDataSource();
 
@@ -83,6 +85,7 @@ export default async function TripTemplateFormPage(props: PageProps) {
             initialData={initialData}
             id={isEdit ? params.id : undefined}
             provinces={provinces.map(p => ({ id: p.id, name: p.name }))}
+            returnParams={searchParams}
         />
     );
 }
