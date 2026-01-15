@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ILike } from "typeorm";
 import { initializeDataSource } from "@/lib/typeorm";
 import { TripTemplate } from "@/entities/TripTemplate";
+import { parseTripTemplateFormData } from "@/lib/template-utils";
 import { TripTemplateDay } from "@/entities/TripTemplateDay";
 import { TripTemplateActivity } from "@/entities/TripTemplateActivity";
 import { Province } from "@/entities/Province";
@@ -77,17 +78,34 @@ export async function POST(request: NextRequest) {
         const dataSource = await initializeDataSource();
         const tripTemplateRepo = dataSource.getRepository<TripTemplate>("TripTemplate");
 
-        const body = await request.json();
+        const body = await parseTripTemplateFormData(request);
+
+        const templateId = crypto.randomUUID();
+
+        // Patch FKs for cascade
+        let days = body.days || [];
+        if (days && Array.isArray(days)) {
+            days = days.map((day: any) => {
+                day.tripTemplateId = templateId;
+                if (day.activities && Array.isArray(day.activities)) {
+                    day.activities = day.activities.map((activity: any) => {
+                        activity.dayId = day.id;
+                        return activity;
+                    });
+                }
+                return day;
+            });
+        }
 
         const template = tripTemplateRepo.create({
-            id: crypto.randomUUID(),
+            id: templateId,
             title: body.title,
             description: body.description,
             provinceId: body.provinceId || null,
             isPublic: body.isPublic || false,
             avatar: body.avatar,
             fee: body.fee || 0,
-            days: body.days,
+            days: days,
             createdAt: new Date(),
             updatedAt: new Date(),
         });

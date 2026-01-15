@@ -21,6 +21,9 @@ export class TripTemplateActivity extends BaseEntity {
     @Column({ type: "text", nullable: true })
     notes?: string | null;
 
+    @Column({ type: "text", nullable: true })
+    avatar?: string | null;
+
     @Column({ type: "boolean", default: false })
     important!: boolean;
 

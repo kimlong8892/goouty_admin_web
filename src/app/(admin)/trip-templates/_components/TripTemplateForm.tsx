@@ -17,6 +17,7 @@ interface Activity {
     durationMin?: number;
     location?: string;
     notes?: string;
+    avatar?: string;
     important: boolean;
     activityOrder: number;
 }
@@ -53,6 +54,7 @@ export default function TripTemplateForm({ initialData, id, provinces, returnPar
     const [loading, setLoading] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set([0]));
+    const [activityFiles, setActivityFiles] = useState<Record<string, File>>({});
     const [form, setForm] = useState<TemplateForm>(initialData || {
         title: "",
         description: "",
@@ -78,27 +80,24 @@ export default function TripTemplateForm({ initialData, id, provinces, returnPar
         setLoading(true);
 
         try {
-            let avatarUrl = form.avatar;
+            const formData = new FormData();
 
-            // 1. Upload image if a new one was selected
+            // Append JSON data
+            formData.append("data", JSON.stringify(form));
+
+            // Append Main Avatar
             if (selectedFile) {
-                const formData = new FormData();
-                formData.append("file", selectedFile);
-
-                const uploadRes = await fetch("/api/upload", {
-                    method: "POST",
-                    body: formData,
-                });
-
-                if (uploadRes.ok) {
-                    const data = await uploadRes.json();
-                    avatarUrl = data.url;
-                } else {
-                    throw new Error("Failed to upload image");
-                }
+                formData.append("avatarFile", selectedFile);
             }
 
-            // 2. Submit the form with the (potentially new) avatar URL
+            // Append Activity Avatars
+            Object.entries(activityFiles).forEach(([activityId, file]) => {
+                if (file) {
+                    formData.append(`activity_avatar_${activityId}`, file);
+                }
+            });
+
+            // Submit
             const url = isEdit
                 ? `/api/trip-templates/${id}`
                 : "/api/trip-templates";
@@ -106,8 +105,7 @@ export default function TripTemplateForm({ initialData, id, provinces, returnPar
 
             const response = await fetch(url, {
                 method,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...form, avatar: avatarUrl }),
+                body: formData,
             });
 
             if (response.ok) {
@@ -200,6 +198,7 @@ export default function TripTemplateForm({ initialData, id, provinces, returnPar
                                 durationMin: 60,
                                 location: "",
                                 notes: "",
+                                avatar: "",
                                 important: false,
                                 activityOrder: day.activities.length + 1,
                             },
@@ -356,12 +355,14 @@ export default function TripTemplateForm({ initialData, id, provinces, returnPar
                                 <div className="lg:col-span-5 space-y-8">
                                     <div>
                                         <label className="mb-3 block text-xs font-bold uppercase tracking-widest text-gray-400">Hình ảnh Đại diện</label>
-                                        <ImageUpload
-                                            value={form.avatar}
-                                            onChange={(file) => setSelectedFile(file)}
-                                            onRemove={() => setForm({ ...form, avatar: "" })}
-                                            disabled={loading}
-                                        />
+                                        <div className="h-70 w-full">
+                                            <ImageUpload
+                                                value={form.avatar}
+                                                onChange={(file) => setSelectedFile(file)}
+                                                onRemove={() => setForm({ ...form, avatar: "" })}
+                                                disabled={loading}
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -628,6 +629,37 @@ export default function TripTemplateForm({ initialData, id, provinces, returnPar
                                                                                 onChange={(e) => updateActivity(dayIndex, activityIndex, "notes", e.target.value)}
                                                                                 className="w-full border-0 border-l-2 border-gray-100 bg-transparent px-4 py-1 text-xs italic text-gray-500 focus:border-brand-600 focus:ring-0 dark:border-gray-800"
                                                                             />
+
+                                                                            <div className="pt-2">
+                                                                                <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-gray-400">Hình ảnh</label>
+                                                                                <div className="h-60 w-60">
+                                                                                    <ImageUpload
+                                                                                        value={activity.avatar}
+                                                                                        onChange={(file) => {
+                                                                                            if (file) {
+                                                                                                setActivityFiles(prev => ({ ...prev, [activity.id]: file }));
+                                                                                            } else {
+                                                                                                // If file removed, we might want to clear the avatar url AND the file
+                                                                                                updateActivity(dayIndex, activityIndex, "avatar", "");
+                                                                                                setActivityFiles(prev => {
+                                                                                                    const newFiles = { ...prev };
+                                                                                                    delete newFiles[activity.id];
+                                                                                                    return newFiles;
+                                                                                                });
+                                                                                            }
+                                                                                        }}
+                                                                                        onRemove={() => {
+                                                                                            updateActivity(dayIndex, activityIndex, "avatar", "");
+                                                                                            setActivityFiles(prev => {
+                                                                                                const newFiles = { ...prev };
+                                                                                                delete newFiles[activity.id];
+                                                                                                return newFiles;
+                                                                                            });
+                                                                                        }}
+                                                                                        disabled={loading}
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                 ))}

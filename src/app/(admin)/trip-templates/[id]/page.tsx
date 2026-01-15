@@ -73,6 +73,7 @@ export default async function TripTemplateFormPage(props: PageProps) {
                     durationMin: activity.durationMin ?? 60,
                     location: activity.location || "",
                     notes: activity.notes || "",
+                    avatar: activity.avatar || "",
                     important: activity.important,
                     activityOrder: activity.activityOrder,
                 })).sort((a, b) => a.activityOrder - b.activityOrder),
