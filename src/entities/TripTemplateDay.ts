@@ -1,4 +1,4 @@
-import { Entity, PrimaryColumn, Column, ManyToOne, OneToMany, JoinColumn, BaseEntity } from "typeorm";
+import { Entity, PrimaryColumn, Column, ManyToOne, OneToMany, JoinColumn, BaseEntity, CreateDateColumn } from "typeorm";
 import type { TripTemplate } from "@/entities/TripTemplate";
 import type { TripTemplateActivity } from "@/entities/TripTemplateActivity";
 
@@ -18,6 +18,10 @@ export class TripTemplateDay extends BaseEntity {
 
     @Column({ type: "uuid" })
     tripTemplateId!: string;
+
+    @CreateDateColumn({ type: "timestamp" })
+    createdAt!: Date;
+
 
     @ManyToOne("TripTemplate", (template: TripTemplate) => template.days, { onDelete: "CASCADE" })
     @JoinColumn({ name: "tripTemplateId" })

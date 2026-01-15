@@ -66,6 +66,7 @@ export default async function TripTemplateFormPage(props: PageProps) {
                 title: day.title,
                 description: day.description || "",
                 dayOrder: day.dayOrder,
+                createdAt: day.createdAt ? new Date(day.createdAt).getTime() : 0,
                 activities: (day.activities || []).map(activity => ({
                     id: activity.id,
                     title: activity.title,
@@ -77,7 +78,7 @@ export default async function TripTemplateFormPage(props: PageProps) {
                     important: activity.important,
                     activityOrder: activity.activityOrder,
                 })).sort((a, b) => a.activityOrder - b.activityOrder),
-            })).sort((a, b) => a.dayOrder - b.dayOrder),
+            })).sort((a, b) => a.createdAt - b.createdAt),
         };
     }
 

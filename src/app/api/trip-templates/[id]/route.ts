@@ -28,7 +28,7 @@ export async function GET(
             },
             order: {
                 days: {
-                    dayOrder: "ASC",
+                    createdAt: "ASC",
                     activities: {
                         activityOrder: "ASC",
                     },

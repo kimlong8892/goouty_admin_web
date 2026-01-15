@@ -27,6 +27,7 @@ interface Day {
     title: string;
     description?: string;
     dayOrder: number;
+    createdAt?: number;
     activities: Activity[];
 }
 
@@ -146,6 +147,7 @@ export default function TripTemplateForm({ initialData, id, provinces, returnPar
                     title: `Day ${prev.days.length + 1}`,
                     description: "",
                     dayOrder: prev.days.length + 1,
+                    createdAt: Date.now(),
                     activities: [],
                 },
             ];
