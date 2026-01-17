@@ -129,10 +129,19 @@ export async function PUT(
                 // Ensure day has tripTemplateId
                 day.tripTemplateId = id;
 
+                // Ensure dates are actual Date objects to avoid "date/time field value out of range"
+                if (day.createdAt) day.createdAt = new Date(day.createdAt);
+                if (day.updatedAt) day.updatedAt = new Date(day.updatedAt);
+
                 if (day.activities && Array.isArray(day.activities)) {
                     day.activities = day.activities.map((activity: any) => {
                         // Ensure activity has dayId
                         activity.dayId = day.id;
+
+                        // Also check for dates in activities just in case
+                        if (activity.createdAt) activity.createdAt = new Date(activity.createdAt);
+                        if (activity.updatedAt) activity.updatedAt = new Date(activity.updatedAt);
+
                         return activity;
                     });
                 }

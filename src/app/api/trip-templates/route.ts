@@ -87,9 +87,18 @@ export async function POST(request: NextRequest) {
         if (days && Array.isArray(days)) {
             days = days.map((day: any) => {
                 day.tripTemplateId = templateId;
+
+                // Ensure dates are actual Date objects to avoid "date/time field value out of range"
+                if (day.createdAt) day.createdAt = new Date(day.createdAt);
+                if (day.updatedAt) day.updatedAt = new Date(day.updatedAt);
+
                 if (day.activities && Array.isArray(day.activities)) {
                     day.activities = day.activities.map((activity: any) => {
                         activity.dayId = day.id;
+
+                        if (activity.createdAt) activity.createdAt = new Date(activity.createdAt);
+                        if (activity.updatedAt) activity.updatedAt = new Date(activity.updatedAt);
+
                         return activity;
                     });
                 }
