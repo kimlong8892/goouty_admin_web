@@ -1,9 +1,16 @@
 "use client";
 
-import { useTransition, useState } from "react";
+import { useRef, useEffect, useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Template } from "@/entities/Template";
+
+const EmailEditor = dynamic(() => import("react-email-editor"), { ssr: false });
+
+// Define the ref type locally to avoid top-level import of a client-only package
+interface LocalEditorRef {
+    editor: any;
+}
 
 interface TemplateFormProps {
     initialData?: Template | null;
@@ -14,12 +21,28 @@ export default function TemplateForm({ initialData, returnParams }: TemplateForm
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
-    const [emailBody, setEmailBody] = useState(initialData?.emailBody || "");
     const [emailSubject, setEmailSubject] = useState(initialData?.emailSubject || "");
     const [message, setMessage] = useState(initialData?.message || "");
     const [title, setTitle] = useState(initialData?.title || "");
     const [variables, setVariables] = useState<string[]>(initialData?.variables || []);
     const [copiedVar, setCopiedVar] = useState<string | null>(null);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    const editorRef = useRef<LocalEditorRef>(null);
+
+    useEffect(() => {
+        if (isFullScreen) {
+            document.body.style.overflow = 'hidden';
+            document.body.classList.add("editor-full-screen");
+        } else {
+            document.body.style.overflow = '';
+            document.body.classList.remove("editor-full-screen");
+        }
+        return () => {
+            document.body.style.overflow = '';
+            document.body.classList.remove("editor-full-screen");
+        };
+    }, [isFullScreen]);
 
     const [testEmailAddress, setTestEmailAddress] = useState("");
     const [isSendingTest, setIsSendingTest] = useState(false);
@@ -34,31 +57,6 @@ export default function TemplateForm({ initialData, returnParams }: TemplateForm
         }).catch(err => {
             console.error('Failed to copy: ', err);
         });
-
-        const activeElement = document.activeElement as HTMLTextAreaElement | HTMLInputElement;
-
-        if (activeElement && ["emailBody", "emailSubject", "message", "title"].includes(activeElement.name)) {
-            const start = activeElement.selectionStart || 0;
-            const end = activeElement.selectionEnd || 0;
-            const text = activeElement.value;
-            const before = text.substring(0, start);
-            const after = text.substring(end, text.length);
-            const newValue = before + tag + after;
-
-            if (activeElement.name === "emailBody") setEmailBody(newValue);
-            else if (activeElement.name === "emailSubject") setEmailSubject(newValue);
-            else if (activeElement.name === "message") setMessage(newValue);
-            else if (activeElement.name === "title") setTitle(newValue);
-
-            // Re-focus and set selection (selection might need a timeout or useEffect to be accurate after state update)
-            setTimeout(() => {
-                activeElement.focus();
-                activeElement.setSelectionRange(start + tag.length, start + tag.length);
-            }, 0);
-        } else {
-            // Default to emailBody if nothing else is focused
-            setEmailBody(prev => prev + tag);
-        }
     };
 
     const handleTestEmail = async (e: React.FormEvent) => {
@@ -67,6 +65,14 @@ export default function TemplateForm({ initialData, returnParams }: TemplateForm
 
         setIsSendingTest(true);
         try {
+            // Get HTML from editor
+            const exportPromise = new Promise<{ html: string }>((resolve) => {
+                editorRef.current?.editor?.exportHtml((data: any) => {
+                    resolve(data);
+                });
+            });
+            const { html } = await exportPromise;
+
             // Get current form values using FormData to ensure we send what's currently being edited (except controlled emailBody)
             const form = document.querySelector('form') as HTMLFormElement; // Safe enough locally
             const formData = new FormData(form);
@@ -78,7 +84,7 @@ export default function TemplateForm({ initialData, returnParams }: TemplateForm
                 body: JSON.stringify({
                     to: testEmailAddress,
                     subject: currentSubject,
-                    html: emailBody, // Use the controlled state
+                    html: html, // Use the exported html
                 }),
             });
 
@@ -115,7 +121,17 @@ export default function TemplateForm({ initialData, returnParams }: TemplateForm
             const url = initialData ? `/api/templates/${initialData.id}` : "/api/templates";
             const method = initialData ? "PUT" : "POST";
 
+            // Get HTML and Design from editor
+            const exportPromise = new Promise<{ html: string, design: any }>((resolve) => {
+                editorRef.current?.editor?.exportHtml((data: any) => {
+                    resolve(data);
+                });
+            });
+
             try {
+                const { html, design } = await exportPromise;
+                const finalEmailBody = `${html}\n<!-- unlayer:design:${JSON.stringify(design)} -->`;
+
                 const res = await fetch(url, {
                     method,
                     headers: { "Content-Type": "application/json" },
@@ -124,7 +140,7 @@ export default function TemplateForm({ initialData, returnParams }: TemplateForm
                         title,
                         message,
                         emailSubject,
-                        emailBody,
+                        emailBody: finalEmailBody,
                         variables: varsArray
                     }),
                 });
@@ -284,24 +300,72 @@ export default function TemplateForm({ initialData, returnParams }: TemplateForm
                     </div>
                 </div>
 
-                <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-900 dark:text-white">Email Body</label>
-                    <div className="grid gap-6 md:grid-cols-2">
-                        <textarea
-                            name="emailBody"
-                            value={emailBody}
-                            onChange={(e) => setEmailBody(e.target.value)}
-                            rows={20}
-                            className="w-full font-mono text-sm rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white"
-                        />
-                        <div className="space-y-2">
-
-                            <label className="text-sm font-bold text-gray-500">Preview</label>
-                            <div
-                                className="h-full min-h-[400px] w-full overflow-y-auto rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-                                dangerouslySetInnerHTML={{ __html: emailBody }}
-                            />
+                <div className={`space-y-4 ${isFullScreen ? "fixed inset-0 z-[999999] bg-white dark:bg-gray-900 p-4 flex flex-col" : ""}`}>
+                    <div className="flex items-center justify-between">
+                        <label className="text-sm font-bold text-gray-900 dark:text-white">Email Body</label>
+                        <div className="flex items-center gap-2">
+                            {isFullScreen && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const form = document.querySelector('form') as HTMLFormElement;
+                                        form.requestSubmit();
+                                    }}
+                                    disabled={isPending}
+                                    className="rounded-lg bg-gray-900 px-4 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-gray-800 active:scale-95 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+                                >
+                                    {isPending ? "Saving..." : "Save Template"}
+                                </button>
+                            )}
+                            <button
+                                type="button"
+                                onClick={() => setIsFullScreen(!isFullScreen)}
+                                className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-600 shadow-sm transition-all hover:bg-gray-50 active:scale-95 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                            >
+                                {isFullScreen ? (
+                                    <>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" /></svg>
+                                        Exit Full Screen
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" /></svg>
+                                        Full Screen
+                                    </>
+                                )}
+                            </button>
                         </div>
+                    </div>
+                    <div className={`rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm dark:border-gray-800 ${isFullScreen ? "flex-1" : ""}`}>
+                        <EmailEditor
+                            ref={editorRef}
+                            onLoad={() => {
+                                if (initialData?.emailBody) {
+                                    const match = initialData.emailBody.match(/<!-- unlayer:design:([\s\S]*) -->/);
+                                    if (match) {
+                                        try {
+                                            const design = JSON.parse(match[1]);
+                                            editorRef.current?.editor?.loadDesign(design);
+                                        } catch (e) {
+                                            console.error("Failed to parse design", e);
+                                        }
+                                    }
+                                }
+                            }}
+                            minHeight={isFullScreen ? "100%" : "600px"}
+                            options={{
+                                appearance: {
+                                    theme: 'modern_light',
+                                },
+                                mergeTags: variables.reduce((acc, v) => ({
+                                    ...acc,
+                                    [v]: {
+                                        name: v,
+                                        value: `{{${v}}}`
+                                    }
+                                }), {})
+                            }}
+                        />
                     </div>
                 </div>
 
