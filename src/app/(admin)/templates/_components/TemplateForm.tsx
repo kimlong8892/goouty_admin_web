@@ -15,9 +15,51 @@ export default function TemplateForm({ initialData, returnParams }: TemplateForm
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
     const [emailBody, setEmailBody] = useState(initialData?.emailBody || "");
+    const [emailSubject, setEmailSubject] = useState(initialData?.emailSubject || "");
+    const [message, setMessage] = useState(initialData?.message || "");
+    const [title, setTitle] = useState(initialData?.title || "");
+    const [variables, setVariables] = useState<string[]>(initialData?.variables || []);
+    const [copiedVar, setCopiedVar] = useState<string | null>(null);
 
     const [testEmailAddress, setTestEmailAddress] = useState("");
     const [isSendingTest, setIsSendingTest] = useState(false);
+
+    const insertVariable = (variable: string) => {
+        const tag = `{{${variable}}}`;
+
+        // Copy to clipboard
+        navigator.clipboard.writeText(tag).then(() => {
+            setCopiedVar(variable);
+            setTimeout(() => setCopiedVar(null), 2000);
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+        });
+
+        const activeElement = document.activeElement as HTMLTextAreaElement | HTMLInputElement;
+
+        if (activeElement && ["emailBody", "emailSubject", "message", "title"].includes(activeElement.name)) {
+            const start = activeElement.selectionStart || 0;
+            const end = activeElement.selectionEnd || 0;
+            const text = activeElement.value;
+            const before = text.substring(0, start);
+            const after = text.substring(end, text.length);
+            const newValue = before + tag + after;
+
+            if (activeElement.name === "emailBody") setEmailBody(newValue);
+            else if (activeElement.name === "emailSubject") setEmailSubject(newValue);
+            else if (activeElement.name === "message") setMessage(newValue);
+            else if (activeElement.name === "title") setTitle(newValue);
+
+            // Re-focus and set selection (selection might need a timeout or useEffect to be accurate after state update)
+            setTimeout(() => {
+                activeElement.focus();
+                activeElement.setSelectionRange(start + tag.length, start + tag.length);
+            }, 0);
+        } else {
+            // Default to emailBody if nothing else is focused
+            setEmailBody(prev => prev + tag);
+        }
+    };
 
     const handleTestEmail = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -60,9 +102,35 @@ export default function TemplateForm({ initialData, returnParams }: TemplateForm
         const formData = new FormData(e.currentTarget);
         const data = Object.fromEntries(formData.entries());
 
+        // Use variables from state
+        const varsArray = variables;
+
         // Basic validation
         if (!initialData && !data.code) {
             setError("Code is required");
+            return;
+        }
+
+        // Validate variables in subject and body
+        const extractVars = (text: string) => {
+            const regex = /{{(.*?)}}/g;
+            const matches = [];
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                matches.push(match[1].trim());
+            }
+            return matches;
+        };
+
+        const subjectVars = extractVars(emailSubject);
+        const bodyVars = extractVars(emailBody);
+        const messageVars = extractVars(message);
+        const titleVars = extractVars(title);
+        const allUsedVars = Array.from(new Set([...subjectVars, ...bodyVars, ...messageVars, ...titleVars]));
+
+        const invalidVars = allUsedVars.filter(v => !varsArray.includes(v));
+        if (invalidVars.length > 0) {
+            setError(`The following variables are not allowed: ${invalidVars.join(", ")}. Allowed variables: ${varsArray.join(", ")}`);
             return;
         }
 
@@ -74,7 +142,14 @@ export default function TemplateForm({ initialData, returnParams }: TemplateForm
                 const res = await fetch(url, {
                     method,
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(data),
+                    body: JSON.stringify({
+                        ...data,
+                        title,
+                        message,
+                        emailSubject,
+                        emailBody,
+                        variables: varsArray
+                    }),
                 });
 
                 if (!res.ok) {
@@ -140,9 +215,40 @@ export default function TemplateForm({ initialData, returnParams }: TemplateForm
                         <label className="text-sm font-bold text-gray-900 dark:text-white">Title</label>
                         <input
                             name="title"
-                            defaultValue={initialData?.title || ""}
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
                             className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white"
                         />
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-bold text-gray-900 dark:text-white">Available Variables</label>
+                    <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
+                        {variables.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                                {variables.map(v => (
+                                    <button
+                                        key={v}
+                                        type="button"
+                                        onClick={() => insertVariable(v)}
+                                        title={`Click to copy & insert {{${v}}}`}
+                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold border rounded-lg transition-all shadow-sm active:scale-95 ${copiedVar === v
+                                                ? "bg-green-50 text-green-600 border-green-200 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400"
+                                                : "bg-white text-blue-600 border-blue-100 hover:bg-blue-50 hover:border-blue-200 dark:bg-gray-900 dark:border-gray-700 dark:text-blue-400"
+                                            }`}
+                                    >
+                                        <span className={copiedVar === v ? "text-green-500" : "text-blue-400 font-normal"}>
+                                            {copiedVar === v ? "✓" : "+"}
+                                        </span>
+                                        {v}
+                                        {copiedVar === v && <span className="ml-1 text-[10px] font-normal opacity-70">Copied</span>}
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-gray-400 italic">No variables defined for this template.</p>
+                        )}
                     </div>
                 </div>
 
@@ -150,7 +256,8 @@ export default function TemplateForm({ initialData, returnParams }: TemplateForm
                     <label className="text-sm font-bold text-gray-900 dark:text-white">Message</label>
                     <textarea
                         name="message"
-                        defaultValue={initialData?.message || ""}
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
                         rows={3}
                         className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white"
                     />
@@ -182,7 +289,8 @@ export default function TemplateForm({ initialData, returnParams }: TemplateForm
                         <label className="text-sm font-bold text-gray-900 dark:text-white">Email Subject</label>
                         <input
                             name="emailSubject"
-                            defaultValue={initialData?.emailSubject || ""}
+                            value={emailSubject}
+                            onChange={(e) => setEmailSubject(e.target.value)}
                             className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white"
                         />
                     </div>
