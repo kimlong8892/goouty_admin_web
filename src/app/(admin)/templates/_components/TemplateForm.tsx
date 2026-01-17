@@ -179,15 +179,18 @@ export default function TemplateForm({ initialData, returnParams }: TemplateForm
 
     const handleExportHtml = async () => {
         try {
-            const exportPromise = new Promise<{ html: string }>((resolve) => {
+            const exportPromise = new Promise<{ html: string, design: any }>((resolve) => {
                 editorRef.current?.editor?.exportHtml((data: any) => {
                     resolve(data);
                 });
             });
-            const { html } = await exportPromise;
+            const { html, design } = await exportPromise;
+
+            // Embed design JSON in HTML as comment (same format as we save to DB)
+            const htmlWithDesign = `${html}\n<!-- unlayer:design:${JSON.stringify(design)} -->`;
 
             // Create a blob and download
-            const blob = new Blob([html], { type: 'text/html' });
+            const blob = new Blob([htmlWithDesign], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -205,11 +208,161 @@ export default function TemplateForm({ initialData, returnParams }: TemplateForm
         if (!importHtmlContent.trim()) return;
 
         try {
-            // Parse HTML to extract meaningful content
+            // First, check if the HTML contains embedded Unlayer design JSON
+            const designCommentMatch = importHtmlContent.match(/<!-- unlayer:design:([\s\S]*?) -->/);
+
+            if (designCommentMatch) {
+                // Perfect case: HTML was exported from Unlayer with design JSON
+                try {
+                    const design = JSON.parse(designCommentMatch[1]);
+                    editorRef.current?.editor?.loadDesign(design);
+                    setIsImportModalOpen(false);
+                    setImportHtmlContent('');
+                    setUploadedFileName(null);
+                    return;
+                } catch (e) {
+                    console.error('Failed to parse embedded design JSON:', e);
+                    // Fall through to HTML parsing
+                }
+            }
+
+            // Fallback: Parse HTML and convert to Unlayer blocks
             const parser = new DOMParser();
             const doc = parser.parseFromString(importHtmlContent, 'text/html');
 
-            // Create a simple design with the HTML content
+            const parseElement = (element: Element): any[] => {
+                const blocks: any[] = [];
+                const tagName = element.tagName.toLowerCase();
+
+                if (tagName === 'img') {
+                    blocks.push({
+                        type: 'image',
+                        values: {
+                            src: {
+                                url: element.getAttribute('src') || '',
+                                width: element.getAttribute('width') || 'auto',
+                                height: element.getAttribute('height') || 'auto'
+                            },
+                            alt: element.getAttribute('alt') || '',
+                            textAlign: 'center',
+                            containerPadding: '10px'
+                        }
+                    });
+                } else if (tagName === 'a' && element.textContent?.trim()) {
+                    const isButton = element.classList.contains('button') ||
+                        element.classList.contains('btn') ||
+                        element.getAttribute('role') === 'button';
+
+                    if (isButton) {
+                        blocks.push({
+                            type: 'button',
+                            values: {
+                                text: element.textContent.trim(),
+                                href: {
+                                    url: element.getAttribute('href') || '#',
+                                    target: '_blank'
+                                },
+                                buttonColors: {
+                                    color: '#FFFFFF',
+                                    backgroundColor: '#3AAEE0'
+                                },
+                                textAlign: 'center',
+                                containerPadding: '10px'
+                            }
+                        });
+                    } else {
+                        blocks.push({
+                            type: 'text',
+                            values: {
+                                text: `<a href="${element.getAttribute('href') || '#'}">${element.textContent}</a>`,
+                                containerPadding: '10px'
+                            }
+                        });
+                    }
+                } else if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
+                    blocks.push({
+                        type: 'text',
+                        values: {
+                            text: `<${tagName}>${element.innerHTML}</${tagName}>`,
+                            containerPadding: '10px'
+                        }
+                    });
+                } else if (tagName === 'p' || tagName === 'div') {
+                    const textContent = element.innerHTML.trim();
+                    if (textContent) {
+                        blocks.push({
+                            type: 'text',
+                            values: {
+                                text: textContent,
+                                containerPadding: '10px'
+                            }
+                        });
+                    }
+                } else if (tagName === 'hr') {
+                    blocks.push({
+                        type: 'divider',
+                        values: {
+                            width: '100%',
+                            border: {
+                                borderTopWidth: '1px',
+                                borderTopStyle: 'solid',
+                                borderTopColor: '#CCCCCC'
+                            },
+                            containerPadding: '10px'
+                        }
+                    });
+                } else if (tagName === 'table') {
+                    blocks.push({
+                        type: 'html',
+                        values: {
+                            html: element.outerHTML,
+                            containerPadding: '10px'
+                        }
+                    });
+                } else if (element.children.length > 0) {
+                    Array.from(element.children).forEach(child => {
+                        blocks.push(...parseElement(child));
+                    });
+                } else if (element.textContent?.trim()) {
+                    blocks.push({
+                        type: 'text',
+                        values: {
+                            text: element.textContent.trim(),
+                            containerPadding: '10px'
+                        }
+                    });
+                }
+
+                return blocks;
+            };
+
+            const bodyContent: any[] = [];
+            const body = doc.body;
+
+            if (body.children.length > 0) {
+                Array.from(body.children).forEach(child => {
+                    bodyContent.push(...parseElement(child));
+                });
+            } else if (body.textContent?.trim()) {
+                bodyContent.push({
+                    type: 'text',
+                    values: {
+                        text: body.innerHTML,
+                        containerPadding: '10px'
+                    }
+                });
+            }
+
+            if (bodyContent.length === 0) {
+                bodyContent.push({
+                    type: 'html',
+                    values: {
+                        html: importHtmlContent,
+                        containerPadding: '10px'
+                    }
+                });
+            }
+
             const design = {
                 body: {
                     rows: [
@@ -217,15 +370,7 @@ export default function TemplateForm({ initialData, returnParams }: TemplateForm
                             cells: [1],
                             columns: [
                                 {
-                                    contents: [
-                                        {
-                                            type: 'html',
-                                            values: {
-                                                html: importHtmlContent,
-                                                containerPadding: '10px'
-                                            }
-                                        }
-                                    ]
+                                    contents: bodyContent
                                 }
                             ]
                         }
@@ -244,7 +389,9 @@ export default function TemplateForm({ initialData, returnParams }: TemplateForm
             editorRef.current?.editor?.loadDesign(design);
             setIsImportModalOpen(false);
             setImportHtmlContent('');
+            setUploadedFileName(null);
         } catch (err: any) {
+            console.error('Import error:', err);
             alert('Failed to import HTML: ' + err.message);
         }
     };
