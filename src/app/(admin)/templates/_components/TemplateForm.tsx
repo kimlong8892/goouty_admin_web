@@ -111,29 +111,6 @@ export default function TemplateForm({ initialData, returnParams }: TemplateForm
             return;
         }
 
-        // Validate variables in subject and body
-        const extractVars = (text: string) => {
-            const regex = /{{(.*?)}}/g;
-            const matches = [];
-            let match;
-            while ((match = regex.exec(text)) !== null) {
-                matches.push(match[1].trim());
-            }
-            return matches;
-        };
-
-        const subjectVars = extractVars(emailSubject);
-        const bodyVars = extractVars(emailBody);
-        const messageVars = extractVars(message);
-        const titleVars = extractVars(title);
-        const allUsedVars = Array.from(new Set([...subjectVars, ...bodyVars, ...messageVars, ...titleVars]));
-
-        const invalidVars = allUsedVars.filter(v => !varsArray.includes(v));
-        if (invalidVars.length > 0) {
-            setError(`The following variables are not allowed: ${invalidVars.join(", ")}. Allowed variables: ${varsArray.join(", ")}`);
-            return;
-        }
-
         startTransition(async () => {
             const url = initialData ? `/api/templates/${initialData.id}` : "/api/templates";
             const method = initialData ? "PUT" : "POST";
@@ -234,8 +211,8 @@ export default function TemplateForm({ initialData, returnParams }: TemplateForm
                                         onClick={() => insertVariable(v)}
                                         title={`Click to copy & insert {{${v}}}`}
                                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold border rounded-lg transition-all shadow-sm active:scale-95 ${copiedVar === v
-                                                ? "bg-green-50 text-green-600 border-green-200 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400"
-                                                : "bg-white text-blue-600 border-blue-100 hover:bg-blue-50 hover:border-blue-200 dark:bg-gray-900 dark:border-gray-700 dark:text-blue-400"
+                                            ? "bg-green-50 text-green-600 border-green-200 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400"
+                                            : "bg-white text-blue-600 border-blue-100 hover:bg-blue-50 hover:border-blue-200 dark:bg-gray-900 dark:border-gray-700 dark:text-blue-400"
                                             }`}
                                     >
                                         <span className={copiedVar === v ? "text-green-500" : "text-blue-400 font-normal"}>
