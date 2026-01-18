@@ -28,6 +28,7 @@ export async function PUT(
             durationMin: body.durationMin,
             location: body.location,
             notes: body.notes,
+            avatar: body.avatar,
             important: body.important,
             activityOrder: body.activityOrder,
         });

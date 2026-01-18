@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 interface PageProps {
     params: Promise<{ id: string }>;
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export async function generateMetadata(props: PageProps): Promise<Metadata> {
@@ -26,6 +27,7 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 
 export default async function TripTemplateFormPage(props: PageProps) {
     const params = await props.params;
+    const searchParams = await props.searchParams;
     const isEdit = params.id !== "new";
     const dataSource = await initializeDataSource();
 
@@ -64,6 +66,7 @@ export default async function TripTemplateFormPage(props: PageProps) {
                 title: day.title,
                 description: day.description || "",
                 dayOrder: day.dayOrder,
+                createdAt: day.createdAt ? new Date(day.createdAt).getTime() : 0,
                 activities: (day.activities || []).map(activity => ({
                     id: activity.id,
                     title: activity.title,
@@ -71,10 +74,11 @@ export default async function TripTemplateFormPage(props: PageProps) {
                     durationMin: activity.durationMin ?? 60,
                     location: activity.location || "",
                     notes: activity.notes || "",
+                    avatar: activity.avatar || "",
                     important: activity.important,
                     activityOrder: activity.activityOrder,
                 })).sort((a, b) => a.activityOrder - b.activityOrder),
-            })).sort((a, b) => a.dayOrder - b.dayOrder),
+            })).sort((a, b) => a.createdAt - b.createdAt),
         };
     }
 
@@ -83,6 +87,7 @@ export default async function TripTemplateFormPage(props: PageProps) {
             initialData={initialData}
             id={isEdit ? params.id : undefined}
             provinces={provinces.map(p => ({ id: p.id, name: p.name }))}
+            returnParams={searchParams}
         />
     );
 }

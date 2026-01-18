@@ -26,6 +26,9 @@ export class Template extends BaseEntity {
     @Column({ type: "text", nullable: true })
     color?: string | null;
 
+    @Column({ type: "text", array: true, nullable: true, default: "{}" })
+    variables?: string[] | null;
+
     @CreateDateColumn({ type: "timestamp" })
     createdAt!: Date;
 

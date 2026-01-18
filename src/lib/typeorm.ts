@@ -11,9 +11,9 @@ import { TripTemplateDay } from "../entities/TripTemplateDay";
 import { TripTemplateActivity } from "../entities/TripTemplateActivity";
 import { Template } from "../entities/Template";
 
-const globalForTypeORM = global as unknown as { appDataSourceGoOutyV3: DataSource };
+const globalForTypeORM = global as unknown as { appDataSourceGoOutyV4: DataSource };
 
-export const AppDataSource = globalForTypeORM.appDataSourceGoOutyV3 || new DataSource({
+export const AppDataSource = globalForTypeORM.appDataSourceGoOutyV4 || new DataSource({
     type: "postgres",
     url: process.env.DATABASE_URL,
     synchronize: false, // Set to false in production, use migrations
@@ -34,7 +34,7 @@ export const AppDataSource = globalForTypeORM.appDataSourceGoOutyV3 || new DataS
 });
 
 if (process.env.NODE_ENV !== "production") {
-    globalForTypeORM.appDataSourceGoOutyV3 = AppDataSource;
+    globalForTypeORM.appDataSourceGoOutyV4 = AppDataSource;
 }
 
 export const initializeDataSource = async () => {

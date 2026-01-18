@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ImageUpload from "@/components/ImageUpload";
+import ProvinceSelect from "./province-select";
 
 interface Province {
     id: string;
@@ -16,6 +17,7 @@ interface Activity {
     durationMin?: number;
     location?: string;
     notes?: string;
+    avatar?: string;
     important: boolean;
     activityOrder: number;
 }
@@ -25,6 +27,7 @@ interface Day {
     title: string;
     description?: string;
     dayOrder: number;
+    createdAt?: number;
     activities: Activity[];
 }
 
@@ -42,15 +45,17 @@ interface TripTemplateFormProps {
     initialData?: TemplateForm;
     id?: string;
     provinces: Province[];
+    returnParams?: { [key: string]: string | string[] | undefined };
 }
 
-export default function TripTemplateForm({ initialData, id, provinces }: TripTemplateFormProps) {
+export default function TripTemplateForm({ initialData, id, provinces, returnParams }: TripTemplateFormProps) {
     const router = useRouter();
     const isEdit = !!id;
 
     const [loading, setLoading] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set([0]));
+    const [activityFiles, setActivityFiles] = useState<Record<string, File>>({});
     const [form, setForm] = useState<TemplateForm>(initialData || {
         title: "",
         description: "",
@@ -76,27 +81,24 @@ export default function TripTemplateForm({ initialData, id, provinces }: TripTem
         setLoading(true);
 
         try {
-            let avatarUrl = form.avatar;
+            const formData = new FormData();
 
-            // 1. Upload image if a new one was selected
+            // Append JSON data
+            formData.append("data", JSON.stringify(form));
+
+            // Append Main Avatar
             if (selectedFile) {
-                const formData = new FormData();
-                formData.append("file", selectedFile);
-
-                const uploadRes = await fetch("/api/upload", {
-                    method: "POST",
-                    body: formData,
-                });
-
-                if (uploadRes.ok) {
-                    const data = await uploadRes.json();
-                    avatarUrl = data.url;
-                } else {
-                    throw new Error("Failed to upload image");
-                }
+                formData.append("avatarFile", selectedFile);
             }
 
-            // 2. Submit the form with the (potentially new) avatar URL
+            // Append Activity Avatars
+            Object.entries(activityFiles).forEach(([activityId, file]) => {
+                if (file) {
+                    formData.append(`activity_avatar_${activityId}`, file);
+                }
+            });
+
+            // Submit
             const url = isEdit
                 ? `/api/trip-templates/${id}`
                 : "/api/trip-templates";
@@ -104,12 +106,25 @@ export default function TripTemplateForm({ initialData, id, provinces }: TripTem
 
             const response = await fetch(url, {
                 method,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...form, avatar: avatarUrl }),
+                body: formData,
             });
 
             if (response.ok) {
-                router.push("/trip-templates");
+                const params = new URLSearchParams();
+                if (returnParams) {
+                    Object.entries(returnParams).forEach(([key, value]) => {
+                        if (value !== undefined) {
+                            if (Array.isArray(value)) {
+                                value.forEach(v => params.append(key, v));
+                            } else {
+                                params.set(key, value);
+                            }
+                        }
+                    });
+                }
+                if (id) params.set("lastId", id);
+                const queryString = params.toString();
+                router.push(queryString ? `/trip-templates?${queryString}` : "/trip-templates");
                 router.refresh();
             } else {
                 alert("Không thể lưu lịch trình");
@@ -123,20 +138,30 @@ export default function TripTemplateForm({ initialData, id, provinces }: TripTem
     };
 
     const addDay = () => {
+        const newId = crypto.randomUUID();
         setForm((prev) => {
             const newDays = [
                 ...prev.days,
                 {
-                    id: crypto.randomUUID(),
+                    id: newId,
                     title: `Day ${prev.days.length + 1}`,
                     description: "",
                     dayOrder: prev.days.length + 1,
+                    createdAt: Date.now(),
                     activities: [],
                 },
             ];
-            setExpandedDays(prev => new Set([...prev, newDays.length - 1]));
+            setExpandedDays((prev) => new Set([...prev, newDays.length - 1]));
             return { ...prev, days: newDays };
         });
+
+        // Scroll to the new day after it's rendered
+        setTimeout(() => {
+            const element = document.getElementById(newId);
+            if (element) {
+                element.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+        }, 100);
     };
 
     const removeDay = (index: number) => {
@@ -175,6 +200,7 @@ export default function TripTemplateForm({ initialData, id, provinces }: TripTem
                                 durationMin: 60,
                                 location: "",
                                 notes: "",
+                                avatar: "",
                                 important: false,
                                 activityOrder: day.activities.length + 1,
                             },
@@ -244,7 +270,23 @@ export default function TripTemplateForm({ initialData, id, provinces }: TripTem
                     <div className="flex items-center gap-4">
                         <button
                             type="button"
-                            onClick={() => router.back()}
+                            onClick={() => {
+                                const params = new URLSearchParams();
+                                if (returnParams) {
+                                    Object.entries(returnParams).forEach(([key, value]) => {
+                                        if (value !== undefined) {
+                                            if (Array.isArray(value)) {
+                                                value.forEach(v => params.append(key, v));
+                                            } else {
+                                                params.set(key, value);
+                                            }
+                                        }
+                                    });
+                                }
+                                if (id) params.set("lastId", id);
+                                const queryString = params.toString();
+                                router.push(queryString ? `/trip-templates?${queryString}` : "/trip-templates");
+                            }}
                             className="rounded-2xl border border-gray-200 bg-white px-6 py-3.5 text-sm font-bold text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-400 dark:hover:bg-gray-700 active:scale-95"
                         >
                             Hủy Thay đổi
@@ -315,29 +357,25 @@ export default function TripTemplateForm({ initialData, id, provinces }: TripTem
                                 <div className="lg:col-span-5 space-y-8">
                                     <div>
                                         <label className="mb-3 block text-xs font-bold uppercase tracking-widest text-gray-400">Hình ảnh Đại diện</label>
-                                        <ImageUpload
-                                            value={form.avatar}
-                                            onChange={(file) => setSelectedFile(file)}
-                                            onRemove={() => setForm({ ...form, avatar: "" })}
-                                            disabled={loading}
-                                        />
+                                        <div className="h-70 w-full">
+                                            <ImageUpload
+                                                value={form.avatar}
+                                                onChange={(file) => setSelectedFile(file)}
+                                                onRemove={() => setForm({ ...form, avatar: "" })}
+                                                disabled={loading}
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">Tỉnh thành</label>
-                                            <select
+                                            <ProvinceSelect
+                                                provinces={provinces}
                                                 value={form.provinceId}
-                                                onChange={(e) => setForm({ ...form, provinceId: e.target.value })}
-                                                className="w-full rounded-2xl border-gray-100 bg-gray-50/50 px-4 py-3.5 text-sm font-bold text-gray-900 transition-all focus:bg-white focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white appearance-none cursor-pointer"
-                                            >
-                                                <option value="">Chọn Điểm đến</option>
-                                                {provinces.map((province) => (
-                                                    <option key={province.id} value={province.id}>
-                                                        {province.name}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                                onChange={(val) => setForm({ ...form, provinceId: val })}
+                                                disabled={loading}
+                                            />
                                         </div>
 
                                         <div className="space-y-2">
@@ -398,6 +436,7 @@ export default function TripTemplateForm({ initialData, id, provinces }: TripTem
                                 {form.days.map((day, dayIndex) => (
                                     <div
                                         key={day.id}
+                                        id={day.id}
                                         className="group/day relative overflow-hidden rounded-[2.5rem] border border-gray-100 bg-white transition-all hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5 dark:border-gray-800 dark:bg-gray-900"
                                     >
                                         {/* Day Header */}
@@ -592,6 +631,37 @@ export default function TripTemplateForm({ initialData, id, provinces }: TripTem
                                                                                 onChange={(e) => updateActivity(dayIndex, activityIndex, "notes", e.target.value)}
                                                                                 className="w-full border-0 border-l-2 border-gray-100 bg-transparent px-4 py-1 text-xs italic text-gray-500 focus:border-brand-600 focus:ring-0 dark:border-gray-800"
                                                                             />
+
+                                                                            <div className="pt-2">
+                                                                                <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-gray-400">Hình ảnh</label>
+                                                                                <div className="h-60 w-60">
+                                                                                    <ImageUpload
+                                                                                        value={activity.avatar}
+                                                                                        onChange={(file) => {
+                                                                                            if (file) {
+                                                                                                setActivityFiles(prev => ({ ...prev, [activity.id]: file }));
+                                                                                            } else {
+                                                                                                // If file removed, we might want to clear the avatar url AND the file
+                                                                                                updateActivity(dayIndex, activityIndex, "avatar", "");
+                                                                                                setActivityFiles(prev => {
+                                                                                                    const newFiles = { ...prev };
+                                                                                                    delete newFiles[activity.id];
+                                                                                                    return newFiles;
+                                                                                                });
+                                                                                            }
+                                                                                        }}
+                                                                                        onRemove={() => {
+                                                                                            updateActivity(dayIndex, activityIndex, "avatar", "");
+                                                                                            setActivityFiles(prev => {
+                                                                                                const newFiles = { ...prev };
+                                                                                                delete newFiles[activity.id];
+                                                                                                return newFiles;
+                                                                                            });
+                                                                                        }}
+                                                                                        disabled={loading}
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                 ))}

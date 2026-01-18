@@ -6,6 +6,7 @@ import { TripTemplateDay } from "@/entities/TripTemplateDay";
 import { TripTemplateActivity } from "@/entities/TripTemplateActivity";
 import { Province } from "@/entities/Province";
 import { deleteFromS3 } from "@/lib/s3";
+import { parseTripTemplateFormData } from "@/lib/template-utils";
 
 // GET single template
 export async function GET(
@@ -27,7 +28,7 @@ export async function GET(
             },
             order: {
                 days: {
-                    dayOrder: "ASC",
+                    createdAt: "ASC",
                     activities: {
                         activityOrder: "ASC",
                     },
@@ -64,7 +65,7 @@ export async function PUT(
         const dayRepo = dataSource.getRepository<TripTemplateDay>("TripTemplateDay");
         const activityRepo = dataSource.getRepository<TripTemplateActivity>("TripTemplateActivity");
 
-        const body = await request.json();
+        const body = await parseTripTemplateFormData(request);
 
         const template = await tripTemplateRepo.findOne({
             where: { id },
@@ -122,8 +123,32 @@ export async function PUT(
         template.updatedAt = new Date();
 
         // Update days (cascade will handle update/insert of days and activities)
-        if (body.days) {
-            template.days = body.days;
+        if (body.days && Array.isArray(body.days)) {
+            // Manually patch foreign keys to ensure TypeORM cascade works for plain objects involves explicit columns
+            const processedDays = body.days.map((day: any) => {
+                // Ensure day has tripTemplateId
+                day.tripTemplateId = id;
+
+                // Ensure dates are actual Date objects to avoid "date/time field value out of range"
+                if (day.createdAt) day.createdAt = new Date(day.createdAt);
+                if (day.updatedAt) day.updatedAt = new Date(day.updatedAt);
+
+                if (day.activities && Array.isArray(day.activities)) {
+                    day.activities = day.activities.map((activity: any) => {
+                        // Ensure activity has dayId
+                        activity.dayId = day.id;
+
+                        // Also check for dates in activities just in case
+                        if (activity.createdAt) activity.createdAt = new Date(activity.createdAt);
+                        if (activity.updatedAt) activity.updatedAt = new Date(activity.updatedAt);
+
+                        return activity;
+                    });
+                }
+                return day;
+            });
+
+            template.days = processedDays;
         }
 
         await tripTemplateRepo.save(template);

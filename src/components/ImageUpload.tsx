@@ -9,9 +9,10 @@ interface ImageUploadProps {
     onChange: (file: File | null) => void;
     onRemove?: () => void;
     disabled?: boolean;
+    className?: string;
 }
 
-export default function ImageUpload({ value, onChange, onRemove, disabled }: ImageUploadProps) {
+export default function ImageUpload({ value, onChange, onRemove, disabled, className = "" }: ImageUploadProps) {
     const [preview, setPreview] = useState<string | undefined>(value);
 
     // Update preview if value changes from outside (e.g. initial data)
@@ -45,11 +46,11 @@ export default function ImageUpload({ value, onChange, onRemove, disabled }: Ima
     });
 
     return (
-        <div className="space-y-4">
+        <div className={`flex flex-col h-full w-full ${className}`}>
             <div
                 {...getRootProps()}
                 className={`
-                    relative flex h-64 cursor-pointer flex-col items-center justify-center
+                    relative flex-1 w-full cursor-pointer flex-col items-center justify-center
                     rounded-[2rem] border-2 border-dashed transition-all duration-300
                     ${isDragActive ? "border-primary bg-primary/5 scale-[0.98]" : "border-gray-200 bg-gray-50/30 dark:border-gray-800 dark:bg-gray-900/30"}
                     ${disabled ? "cursor-not-allowed opacity-50" : "hover:border-primary/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/50"}
@@ -96,7 +97,6 @@ export default function ImageUpload({ value, onChange, onRemove, disabled }: Ima
                     </div>
                 )}
             </div>
-
             {preview && (
                 <button
                     type="button"
@@ -107,7 +107,7 @@ export default function ImageUpload({ value, onChange, onRemove, disabled }: Ima
                         if (onRemove) onRemove();
                     }}
                     disabled={disabled}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl py-2 text-xs font-black uppercase tracking-widest text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-500/10"
+                    className="flex w-full shrink-0 items-center justify-center gap-2 rounded-xl py-2 text-xs font-black uppercase tracking-widest text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-500/10"
                 >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

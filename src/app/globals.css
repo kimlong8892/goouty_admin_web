@@ -829,3 +829,19 @@ span.flatpickr-weekday,
   cursor: grabbing;
   /* Changes the cursor to indicate dragging */
 }
+/* Full screen editor mode support */
+body.editor-full-screen header,
+body.editor-full-screen aside {
+  display: none !important;
+}
+
+body.editor-full-screen .flex-1.min-w-0 {
+  margin-left: 0 !important;
+  padding: 0 !important;
+}
+
+body.editor-full-screen .flex-1.min-w-0 > div {
+  padding: 0 !important;
+  margin: 0 !important;
+  max-width: none !important;
+}

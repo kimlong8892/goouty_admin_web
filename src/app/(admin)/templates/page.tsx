@@ -2,6 +2,7 @@ import Link from "next/link";
 import { initializeDataSource } from "@/lib/typeorm";
 import { Template } from "@/entities/Template";
 import DeleteTemplateButton from "./_components/DeleteTemplateButton";
+import ScrollToHighlight from "@/components/common/ScrollToHighlight";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,12 @@ export const metadata = {
 };
 
 
-export default async function TemplatesPage() {
+interface PageProps {
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function TemplatesPage(props: PageProps) {
+    const searchParams = await props.searchParams;
     const dataSource = await initializeDataSource();
     const templateRepo = dataSource.getRepository("Template");
 
@@ -34,7 +40,10 @@ export default async function TemplatesPage() {
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <Link
-                        href="/templates/new"
+                        href={{
+                            pathname: "/templates/new",
+                            query: searchParams,
+                        }}
                         className="group relative inline-flex items-center justify-center overflow-hidden rounded-2xl bg-brand-600 px-8 py-4 font-bold text-white shadow-[0_20px_40px_-15px_rgba(54,65,245,0.3)] transition-all hover:scale-[1.02] hover:shadow-brand-500/40 active:scale-95"
                     >
                         <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 transition-transform duration-500 group-hover:translate-x-full -translate-x-full" />
@@ -45,6 +54,8 @@ export default async function TemplatesPage() {
                     </Link>
                 </div>
             </div>
+
+            <ScrollToHighlight />
 
             {/* Main Content */}
             {
@@ -83,6 +94,7 @@ export default async function TemplatesPage() {
                                     {templates.map((template) => (
                                         <tr
                                             key={template.id}
+                                            id={`template-${template.id}`}
                                             className="group transition-colors hover:bg-primary/[0.02] dark:hover:bg-primary/[0.01]"
                                         >
                                             <td className="px-6 py-4">
@@ -121,7 +133,10 @@ export default async function TemplatesPage() {
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <Link
-                                                        href={`/templates/${template.id}`}
+                                                        href={{
+                                                            pathname: `/templates/${template.id}`,
+                                                            query: searchParams,
+                                                        }}
                                                         className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-50 text-gray-600 transition-all hover:bg-primary hover:text-white dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-primary dark:hover:text-white"
                                                         title="Edit Template"
                                                     >

@@ -17,8 +17,14 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     };
 }
 
-export default async function EditTemplatePage({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = await params;
+interface PageProps {
+    params: Promise<{ id: string }>;
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function EditTemplatePage(props: PageProps) {
+    const { id } = await props.params;
+    const searchParams = await props.searchParams;
     const dataSource = await initializeDataSource();
     const repo = dataSource.getRepository("Template");
     const template = await repo.findOne({ where: { id } });
@@ -27,11 +33,5 @@ export default async function EditTemplatePage({ params }: { params: Promise<{ i
         return <div>Template not found</div>;
     }
 
-    // Convert to plain object if needed, though TypeORM entities are usually fine in SC -> CC if simple
-    // But Dates need to be handled if passed to Client Component as props if strict serialization check is on
-    // Next.js handles Date serialization automatically in recent versions for Server Components -> Client Components props?
-    // Usually it warns. Safe to pass plain object or let Next.js serialize. 
-    // TypeORM Entity instance might have methods, best to spread.
-
-    return <TemplateForm initialData={JSON.parse(JSON.stringify(template))} />;
+    return <TemplateForm initialData={JSON.parse(JSON.stringify(template))} returnParams={searchParams} />;
 }
