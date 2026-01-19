@@ -185,6 +185,7 @@ export default function TripTemplateForm({ initialData, id, provinces, returnPar
     };
 
     const addActivity = (dayIndex: number) => {
+        const newActivityId = crypto.randomUUID();
         setForm((prev) => ({
             ...prev,
             days: prev.days.map((day, i) =>
@@ -194,7 +195,7 @@ export default function TripTemplateForm({ initialData, id, provinces, returnPar
                         activities: [
                             ...day.activities,
                             {
-                                id: crypto.randomUUID(),
+                                id: newActivityId,
                                 title: "",
                                 startTime: "09:00",
                                 durationMin: 60,
@@ -209,6 +210,14 @@ export default function TripTemplateForm({ initialData, id, provinces, returnPar
                     : day
             ),
         }));
+
+        // Scroll to the new activity
+        setTimeout(() => {
+            const element = document.getElementById(`activity-${newActivityId}`);
+            if (element) {
+                element.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+        }, 100);
     };
 
     const removeActivity = (dayIndex: number, activityIndex: number) => {
@@ -537,6 +546,7 @@ export default function TripTemplateForm({ initialData, id, provinces, returnPar
                                                                 {day.activities.map((activity, activityIndex) => (
                                                                     <div
                                                                         key={activity.id}
+                                                                        id={`activity-${activity.id}`}
                                                                         className="group/act relative ml-1.5 flex gap-6 rounded-3xl border border-transparent bg-transparent p-2 transition-all hover:bg-white hover:shadow-xl hover:shadow-gray-200/50 dark:hover:bg-gray-800 dark:hover:shadow-none"
                                                                     >
                                                                         {/* Timeline Dot */}
@@ -665,6 +675,23 @@ export default function TripTemplateForm({ initialData, id, provinces, returnPar
                                                                         </div>
                                                                     </div>
                                                                 ))}
+
+                                                                {/* Bottom Add Activity Button */}
+                                                                {day.activities.length > 0 && (
+                                                                    <div className="flex justify-center pt-2">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => addActivity(dayIndex)}
+                                                                            className="group flex items-center gap-2 rounded-2xl bg-gray-50 px-8 py-4 text-[10px] font-bold uppercase tracking-widest text-gray-400 transition-all hover:bg-brand-50 hover:text-brand-600 dark:bg-gray-800 dark:hover:bg-brand-500/10 active:scale-95"
+                                                                        >
+                                                                            <svg className="h-4 w-4 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                                                                            </svg>
+                                                                            Thêm Hoạt động tiếp theo
+                                                                        </button>
+                                                                    </div>
+                                                                )
+                                                                }
                                                             </div>
                                                         )}
                                                     </div>
@@ -673,6 +700,22 @@ export default function TripTemplateForm({ initialData, id, provinces, returnPar
                                         )}
                                     </div>
                                 ))}
+
+                                {/* Bottom Add Day Button */}
+                                {form.days.length > 0 && (
+                                    <div className="flex justify-center pt-10">
+                                        <button
+                                            type="button"
+                                            onClick={addDay}
+                                            className="group inline-flex items-center gap-3 rounded-2xl border-2 border-dashed border-gray-200 bg-white px-10 py-5 text-sm font-bold text-gray-400 transition-all hover:border-brand-500/50 hover:bg-brand-50/30 hover:text-brand-600 dark:border-gray-800 dark:bg-gray-900/50 dark:hover:border-brand-500/30"
+                                        >
+                                            <svg className="h-5 w-5 transition-transform group-hover:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                                            </svg>
+                                            Thêm Ngày Hành trình mới
+                                        </button>
+                                    </div>
+                                )}
 
                                 {form.days.length === 0 && (
                                     <div className="flex flex-col items-center justify-center overflow-hidden rounded-[2.5rem] border-2 border-dashed border-gray-100 bg-gray-50/50 p-20 text-center dark:border-gray-800 dark:bg-gray-900/50">
