@@ -7,12 +7,19 @@ export async function GET(request: NextRequest) {
         const page = parseInt(searchParams.get("page") || "1");
         const limit = parseInt(searchParams.get("limit") || "10");
         const status = searchParams.get("status") || "";
+        const urlSearch = searchParams.get("url") || "";
 
         const skip = (page - 1) * limit;
 
         const where: any = {};
         if (status) {
             where.status = status;
+        }
+        if (urlSearch) {
+            where.url = {
+                contains: urlSearch,
+                mode: 'insensitive'
+            };
         }
 
         const [pendingTemplates, total] = await Promise.all([

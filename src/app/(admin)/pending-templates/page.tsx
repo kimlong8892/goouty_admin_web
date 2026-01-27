@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import CreateFromUrlModal from "./CreateFromUrlModal";
+import AutoRefresh from "./AutoRefresh";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,7 @@ interface PageProps {
     searchParams: Promise<{
         page?: string;
         status?: string;
+        url?: string;
     }>;
 }
 
@@ -36,12 +38,19 @@ export default async function PendingTemplatesPage(props: PageProps) {
     const page = parseInt(searchParams.page || "1");
     const limit = 10;
     const status = searchParams.status || "";
+    const urlSearch = searchParams.url || "";
 
     const skip = (page - 1) * limit;
 
     const where: any = {};
     if (status) {
         where.status = status;
+    }
+    if (urlSearch) {
+        where.url = {
+            contains: urlSearch,
+            mode: 'insensitive'
+        };
     }
 
     let pendingTemplates: any[] = [];
@@ -111,7 +120,43 @@ export default async function PendingTemplatesPage(props: PageProps) {
                         Templates being created from URLs
                     </p>
                 </div>
-                <CreateFromUrlModal />
+                <div className="flex flex-wrap items-center gap-3">
+                    <AutoRefresh />
+                    <CreateFromUrlModal />
+                </div>
+            </div>
+
+            {/* Search Section */}
+            <div className="rounded-3xl border border-gray-200 bg-white/50 p-4 backdrop-blur-xl dark:border-gray-700/50 dark:bg-gray-800/50">
+                <form method="get" className="flex gap-3">
+                    {status && <input type="hidden" name="status" value={status} />}
+                    <div className="flex-1 relative">
+                        <input
+                            type="text"
+                            name="url"
+                            defaultValue={urlSearch}
+                            placeholder="Search by URL..."
+                            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 pl-10 text-sm transition-all focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800"
+                        />
+                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <button
+                        type="submit"
+                        className="rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-bold text-white transition-all hover:bg-brand-700"
+                    >
+                        Search
+                    </button>
+                    {urlSearch && (
+                        <a
+                            href={status ? `/pending-templates?status=${status}` : '/pending-templates'}
+                            className="rounded-xl bg-gray-100 px-6 py-2.5 text-sm font-bold text-gray-600 transition-all hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300"
+                        >
+                            Clear
+                        </a>
+                    )}
+                </form>
             </div>
 
             {/* Filters */}
