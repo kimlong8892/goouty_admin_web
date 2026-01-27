@@ -319,6 +319,7 @@ model TripTemplate {
   fee         Decimal           @default(0) @db.Decimal(20, 2)
   province    Province?         @relation(fields: [provinceId], references: [id])
   days        TripTemplateDay[]
+  pendingTrips PendingTripTemplate[] @relation("PendingTripTemplates")
 
   @@index([provinceId])
   @@schema("public")
@@ -365,6 +366,30 @@ model Template {
   variables    String[] @default([])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@schema("public")
+}
+
+model PendingTripTemplate {
+  id             String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  url            String            @unique
+  tripTemplateId String?           @db.Uuid
+  status         PendingTripStatus @default(PENDING)
+  error          String?           @db.Text
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  tripTemplate   TripTemplate?     @relation("PendingTripTemplates", fields: [tripTemplateId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([tripTemplateId])
+  @@schema("public")
+}
+
+enum PendingTripStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
 
   @@schema("public")
 }

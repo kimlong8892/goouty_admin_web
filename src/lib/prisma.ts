@@ -7,7 +7,7 @@ const globalForPrisma = global as unknown as { prisma: any };
 export const prisma = (() => {
     // Nếu đã có instance, kiểm tra xem nó có đầy đủ các model mới không
     if (globalForPrisma.prisma) {
-        const requiredModels = ['user', 'trip', 'expense', 'province', 'admin'];
+        const requiredModels = ['user', 'trip', 'expense', 'province', 'admin', 'pendingTripTemplate'];
         const hasAllModels = requiredModels.every(model => model in globalForPrisma.prisma);
 
         if (hasAllModels) {

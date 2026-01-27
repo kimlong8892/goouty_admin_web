@@ -6,7 +6,6 @@ import { TripTemplate } from "@/entities/TripTemplate";
 import TripTemplatesFilters from "./TripTemplatesFilters";
 import DeleteTemplateButton from "./DeleteTemplateButton";
 import ExcelActions from "./ExcelActions";
-import CreateFromApiButton from "./CreateFromApiButton";
 import ScrollToHighlight from "@/components/common/ScrollToHighlight";
 
 export const dynamic = "force-dynamic";
@@ -78,7 +77,6 @@ export default async function TripTemplatesPage(props: PageProps) {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                     <ExcelActions />
-                    <CreateFromApiButton n8nUrl={process.env.N8N_URL_CREATE_TRIP_TEMPLATE || ""} />
                     <Link
                         href={{
                             pathname: "/trip-templates/new",

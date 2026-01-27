@@ -4,11 +4,7 @@ import React, { useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { toast } from "react-hot-toast";
 
-interface Props {
-    n8nUrl: string;
-}
-
-export default function CreateFromApiButton({ n8nUrl }: Props) {
+export default function CreateFromUrlModal() {
     const [isOpen, setIsOpen] = useState(false);
     const [url, setUrl] = useState("");
     const [loading, setLoading] = useState(false);
@@ -55,10 +51,11 @@ export default function CreateFromApiButton({ n8nUrl }: Props) {
         <>
             <button
                 onClick={() => setIsOpen(true)}
-                className="group relative inline-flex items-center justify-center overflow-hidden rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-gray-700 transition-all hover:bg-gray-50 active:scale-95 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                className="group relative inline-flex items-center justify-center overflow-hidden rounded-2xl bg-brand-600 px-6 py-3 text-sm font-bold text-white shadow-[0_20px_40px_-15px_rgba(54,65,245,0.3)] transition-all hover:scale-[1.02] hover:shadow-brand-500/40 active:scale-95"
             >
-                <svg className="mr-2 h-4 w-4 text-gray-400 group-hover:text-brand-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 transition-transform duration-500 group-hover:translate-x-full -translate-x-full" />
+                <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
                 </svg>
                 Create from URL
             </button>
@@ -71,7 +68,6 @@ export default function CreateFromApiButton({ n8nUrl }: Props) {
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
-
                         <div className="space-y-2">
                             <label htmlFor="url" className="text-sm font-bold text-gray-700 dark:text-gray-300">URL</label>
                             <input
@@ -107,7 +103,7 @@ export default function CreateFromApiButton({ n8nUrl }: Props) {
                                         </svg>
                                         Creating...
                                     </>
-                                ) : "Start Import"}
+                                ) : "Submit"}
                             </button>
                         </div>
                     </form>
