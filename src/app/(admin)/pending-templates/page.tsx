@@ -58,6 +58,9 @@ export default async function PendingTemplatesPage(props: PageProps) {
             },
             skip,
             take: limit,
+            orderBy: {
+                createdAt: 'desc',
+            },
         }),
         prisma.pendingTripTemplate.count({ where })
     ]);
@@ -171,7 +174,7 @@ export default async function PendingTemplatesPage(props: PageProps) {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-                                {pendingTemplates.map((pending) => (
+                                {pendingTemplates.map((pending: PendingTemplate) => (
                                     <tr
                                         key={pending.id}
                                         className="group transition-colors hover:bg-primary/[0.02] dark:hover:bg-primary/[0.01]"
