@@ -44,26 +44,44 @@ export default async function PendingTemplatesPage(props: PageProps) {
         where.status = status;
     }
 
-    const [pendingTemplates, total] = await Promise.all([
-        prisma.pendingTripTemplate.findMany({
-            where,
-            include: {
-                tripTemplate: {
-                    select: {
-                        id: true,
-                        title: true,
-                        avatar: true,
+    let pendingTemplates: any[] = [];
+    let total = 0;
+
+    try {
+        const [templates, count] = await Promise.all([
+            prisma.pendingTripTemplate.findMany({
+                where,
+                include: {
+                    tripTemplate: {
+                        select: {
+                            id: true,
+                            title: true,
+                            avatar: true,
+                        }
                     }
-                }
-            },
-            skip,
-            take: limit,
-            orderBy: {
-                createdAt: 'desc',
-            },
-        }),
-        prisma.pendingTripTemplate.count({ where })
-    ]);
+                },
+                skip,
+                take: limit,
+                orderBy: {
+                    createdAt: 'desc',
+                },
+            }),
+            prisma.pendingTripTemplate.count({ where })
+        ]);
+        pendingTemplates = templates;
+        total = count;
+    } catch (error) {
+        console.error("Error fetching pending templates:", error);
+        return (
+            <div className="p-8 text-center">
+                <h1 className="text-2xl font-bold text-red-600">Failed to load pending templates</h1>
+                <p className="mt-2 text-gray-500">Error: {error instanceof Error ? error.message : "Unknown error"}</p>
+                <pre className="mt-4 p-4 bg-gray-100 rounded text-left overflow-auto max-w-full text-xs">
+                    {JSON.stringify(error, null, 2)}
+                </pre>
+            </div>
+        );
+    }
 
     const totalPages = Math.ceil(total / limit);
 
