@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ImageUpload from "@/components/ImageUpload";
 import ProvinceSelect from "./province-select";
+import TimePicker from "@/components/form/time-picker";
 
 interface Province {
     id: string;
@@ -596,10 +597,9 @@ export default function TripTemplateForm({ initialData, id, provinces, returnPar
                                                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                                                         </svg>
                                                                                     </div>
-                                                                                    <input
-                                                                                        type="time"
-                                                                                        value={activity.startTime}
-                                                                                        onChange={(e) => updateActivity(dayIndex, activityIndex, "startTime", e.target.value)}
+                                                                                    <TimePicker
+                                                                                        value={activity.startTime || "09:00"}
+                                                                                        onChange={(val) => updateActivity(dayIndex, activityIndex, "startTime", val)}
                                                                                         className="w-full rounded-xl border border-gray-100 bg-gray-50/50 py-2.5 pl-9 pr-3 text-xs font-bold focus:bg-white focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800"
                                                                                     />
                                                                                 </div>
